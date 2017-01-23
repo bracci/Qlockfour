@@ -1,0 +1,43 @@
+/*
+   IRTranslatorSparkfun
+*/
+
+#include "IRTranslatorSparkfun.h"
+#include "Debug.h"
+
+#define SPARKFUN_POWER  0x10EFD827
+#define SPARKFUN_A      0x10EFF807
+#define SPARKFUN_B      0x10EF7887
+#define SPARKFUN_C      0x10EF58A7
+#define SPARKFUN_UP     0x10EFA05F
+#define SPARKFUN_DOWN   0x10EF00FF
+#define SPARKFUN_LEFT   0x10EF10EF
+#define SPARKFUN_RIGHT  0x10EF807F
+#define SPARKFUN_SELECT 0x10EF20DF
+
+void IRTranslatorSparkfun::printSignature() {
+  DEBUG_PRINT(F("Sparkfun COM-11759 ,"));
+}
+
+byte IRTranslatorSparkfun::buttonForCode(unsigned long code) {
+  switch (code) {
+    case SPARKFUN_POWER:
+      return REMOTE_BUTTON_TOGGLEBLANK;
+    case SPARKFUN_A:
+      return REMOTE_BUTTON_MODE;
+    case SPARKFUN_LEFT:
+    case SPARKFUN_B:
+      return REMOTE_BUTTON_HOUR_PLUS;
+    case SPARKFUN_RIGHT:
+    case SPARKFUN_C:
+      return REMOTE_BUTTON_MINUTE_PLUS;
+    case SPARKFUN_UP:
+      return REMOTE_BUTTON_BRIGHTER;
+    case SPARKFUN_DOWN:
+      return REMOTE_BUTTON_DARKER;
+    case SPARKFUN_SELECT:
+      return REMOTE_BUTTON_EXTMODE;
+    default:
+      return REMOTE_BUTTON_UNDEFINED;
+  }
+}

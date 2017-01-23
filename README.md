@@ -1,2 +1,2 @@
-# Qlockfour
-QLOCKFOUR NodeMCU
+# QLOCKFOUR NodeMCU
+Eine Firmware der Selbstbau-QLOCKTWO.
