@@ -7,7 +7,7 @@
 
 #include "Configuration.h"
 
-/**
+/*
    Die Standard-Modi.
 */
 typedef enum eMode : byte
@@ -26,11 +26,11 @@ typedef enum eMode : byte
   STD_MODE_TEMP,
 #endif
   STD_MODE_BRIGHTNESS,
-  STD_MODE_COUNT, // letzter STD_MODE
+  STD_MODE_COUNT, // Anzahl STD_MODE
   STD_MODE_BLANK,
-  STD_MODE_NIGHT, // nicht manuell zu erreichender Modus...
+  STD_MODE_NIGHT,
 
-  /**
+  /*
      Die erweiterten Modi.
   */
   EXT_MODE_START,
@@ -67,11 +67,11 @@ typedef enum eMode : byte
 #ifdef USE_EXT_MODE_TEST
   EXT_MODE_TEST,
 #endif
-  EXT_MODE_COUNT // letzter EXT_MODE
+  EXT_MODE_COUNT // Anzahl EXT_MODE
 } Mode;
 
 // Overload the ControlType++ operator
-inline Mode& operator++(Mode& eDOW, int)  // <--- note -- must be a reference
+inline Mode& operator++(Mode& eDOW, int)
 {
   const byte i = static_cast<byte>(eDOW) + 1;
   eDOW = static_cast<Mode>((i) % EXT_MODE_COUNT);

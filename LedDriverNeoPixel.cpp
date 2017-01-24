@@ -8,7 +8,7 @@
 #define NUM_PIXEL 115
 
 /*
-   Konstruktor
+   Konstruktor.
 */
 LedDriverNeoPixel::LedDriverNeoPixel(byte dataPin) {
   _strip = new Adafruit_NeoPixel(NUM_PIXEL, dataPin, NEO_GRB + NEO_KHZ800);
@@ -22,7 +22,7 @@ LedDriverNeoPixel::LedDriverNeoPixel(byte dataPin) {
 }
 
 /*
-   init
+   init.
 */
 void LedDriverNeoPixel::init() {
   setBrightness(50);
@@ -244,7 +244,7 @@ void LedDriverNeoPixel::writeScreenBufferToMatrix(word matrix[16], boolean onCha
 }
 
 /*
-   Die Helligkeit des Displays anpassen
+   Die Helligkeit des Displays anpassen.
 
    @param brightnessInPercent Die Helligkeit.
 */
@@ -256,14 +256,14 @@ void LedDriverNeoPixel::setBrightness(byte brightnessInPercent) {
 }
 
 /*
-   Die aktuelle Helligkeit bekommen
+   Die aktuelle Helligkeit bekommen.
 */
 byte LedDriverNeoPixel::getBrightness() {
   return _brightnessInPercent;
 }
 
 /*
-   Anpassung der Groesse des Bildspeichers
+   Anpassung der Groesse des Bildspeichers.
 
    @param linesToWrite Wieviel Zeilen aus dem Bildspeicher sollen
                        geschrieben werden?
@@ -272,7 +272,7 @@ void LedDriverNeoPixel::setLinesToWrite(byte linesToWrite) {
 }
 
 /*
-   Das Display einschalten
+   Das Display einschalten.
 */
 void LedDriverNeoPixel::wakeUp() {
 }
@@ -287,7 +287,7 @@ void LedDriverNeoPixel::shutDown() {
 }
 
 /*
-   Den Dateninhalt des LED-Treibers loeschen
+   Den Dateninhalt des LED-Treibers loeschen.
 */
 void LedDriverNeoPixel::clearData() {
   _strip->clear();
@@ -295,14 +295,14 @@ void LedDriverNeoPixel::clearData() {
 }
 
 /*
-   Einen X/Y-koordinierten Pixel in der Matrix setzen
+   Einen X/Y-koordinierten Pixel in der Matrix setzen.
 */
 void LedDriverNeoPixel::_setPixel(byte x, byte y, uint32_t c) {
   _setPixel(x + (y * 11), c);
 }
 
 /*
-   Einen Pixel im Streifen setzten (die Eck-LEDs sind am Ende)
+   Einen Pixel im Streifen setzten (die Eck-LEDs sind am Ende).
 */
 void LedDriverNeoPixel::_setPixel(byte num, uint32_t c) {
   if (num < 110) {
@@ -335,7 +335,7 @@ void LedDriverNeoPixel::_setPixel(byte num, uint32_t c) {
 }
 
 /*
-   Funktion fuer saubere 'Regenbogen'-Farben
+   Funktion fuer saubere 'Regenbogen'-Farben.
    Kopiert aus den Adafruit-Beispielen (strand)
 */
 uint32_t LedDriverNeoPixel::_wheel(byte brightness, byte wheelPos) {
@@ -351,7 +351,7 @@ uint32_t LedDriverNeoPixel::_wheel(byte brightness, byte wheelPos) {
 }
 
 /*
-   Hilfsfunktion fuer das Skalieren der Farben
+   Hilfsfunktion fuer das Skalieren der Farben.
 */
 byte LedDriverNeoPixel::_brightnessScaleColor(byte brightness, byte colorPart) {
   return map(brightness, 0, 100, 0, colorPart);

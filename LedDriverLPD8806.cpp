@@ -1,28 +1,14 @@
-/**
+/*
    LedDriverLPD8806
-   Implementierung auf der Basis von LPD8806-Streifen.
-
-   @mc       Arduino/RBBB
-   @autor    Christian Aschoff / caschoff _AT_ mac _DOT_ com
-   @version  1.1
-   @created  9.2.2015
 */
 
 #include "LedDriverLPD8806.h"
 #include "Debug.h"
 
-#if defined(RGB_LEDS) || defined(RGBW_LEDS) || defined(RGBW_LEDS_CLT2)
-
-#if defined(RGBW_LEDS) || defined(RGBW_LEDS_CLT2)
 #define NUM_PIXEL 115
-#endif
 
-#ifdef RGB_LEDS
-#define NUM_PIXEL 130
-#endif
-
-/**
-   Initialisierung.
+/*
+   Konstruktor.
 */
 LedDriverLPD8806::LedDriverLPD8806(byte dataPin, byte clockPin) {
 #ifdef RGB_LEDS
@@ -34,7 +20,6 @@ LedDriverLPD8806::LedDriverLPD8806(byte dataPin, byte clockPin) {
 #ifdef RGBW_LEDS_CLT2
   _strip = new LPD8806RGBW(NUM_PIXEL, dataPin, clockPin);
 #endif
-
   _strip->begin();
   _wheelPos = 0;
   _transitionCounter = 0;
@@ -118,7 +103,7 @@ void LedDriverLPD8806::writeScreenBufferToMatrix(word matrix[16], boolean onChan
 
     if (onChange || _demoTransition) {
 
-      if (((helperSeconds == 0) || _demoTransition) && (mode == STD_MODE_NORMAL) && _transitionCompleted && !evtActive) {
+      if (((helperSeconds == 0) || _demoTransition) && (mode == STD_MODE_NORMAL) && _transitionCompleted) {
         switch (settings.getTransitionMode()) {
           case Settings::TRANSITION_MODE_FADE:
             for (byte i = 0; i < 11; i++) {
@@ -345,7 +330,7 @@ void LedDriverLPD8806::_setPixel(byte x, byte y, uint32_t c) {
 */
 void LedDriverLPD8806::_setPixel(byte num, uint32_t c) {
 
-#if defined(MATRIX_XXL) || defined(RGBW_LEDS)
+#ifdef RGBW_LEDS
   if (num < 110) {
     if ((num / 11) % 2 == 0) {
       _strip->setPixelColor(num, c);
@@ -483,6 +468,4 @@ void LedDriverLPD8806::_clear() {
     _strip->setPixelColor(i, 0);
   }
 }
-
-#endif
 

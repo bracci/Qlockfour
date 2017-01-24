@@ -1,6 +1,7 @@
 /*
    QLOCKFOUR NodeMCU
    Eine Firmware der Selbstbau-QLOCKTWO.
+
    @mc       NodeMCU/ESP8266
    @created  22.01.2017
 */
@@ -17,6 +18,7 @@
 #include "MyRTC.h"
 #include "LedDriver.h"
 #include "LedDriverNeoPixel.h"
+#include "LedDriverLPD8806.h"
 #include "Renderer.h"
 #include "IRTranslator.h"
 #include "IRTranslatorSparkfun.h"
@@ -30,7 +32,6 @@
 #include "LDR.h"
 #include "Settings.h"
 #include "Modes.h"
-
 
 /******************************************************************************
    Declaration
@@ -95,6 +96,7 @@ const char* ntpServerName = NTP_SERVER;
 const int NTP_PACKET_SIZE = 48;
 byte packetBuffer[NTP_PACKET_SIZE];
 WiFiUDP udp;
+int nextNtpSync = 0;
 
 /******************************************************************************
    setup()
@@ -152,13 +154,13 @@ void setup() {
   DEBUG_PRINT("Version: ");
   DEBUG_PRINTLN(FIRMWARE_VERSION);
 
-  // WiFi verbinden und Zeit von einem NTP-Server holen.
+  // Mit WiFi verbinden. Timeout ist 1 Minute.
   DEBUG_PRINT("Connecting to ");
   DEBUG_PRINTLN(ssid);
   int i = 0;
   WiFi.begin(ssid, pass);
-  while ((WiFi.status() != WL_CONNECTED) && (i < 20)) {
-    delay(500);
+  while ((WiFi.status() != WL_CONNECTED) && (i < 60)) {
+    delay(1000);
     i++;
   }
   if (WiFi.status() != WL_CONNECTED) DEBUG_PRINTLN("Error connecting to WiFi.");
@@ -169,7 +171,6 @@ void setup() {
     DEBUG_PRINT("Starting UDP on Port ");
     udp.begin(localPort);
     DEBUG_PRINTLN(udp.localPort());
-    setTimeFromNTP(ntpServerName);
   }
 }
 
@@ -192,22 +193,27 @@ void loop() {
     }
   }
 
-  /******************************************************************************
-     START Render the Matrix depending on mode and needsUpdateFromRtc.
-  ******************************************************************************/
-
   if (needsUpdateFromRtc) {
     needsUpdateFromRtc = false;
+    // Alle 60 Sekunden ausführen.
     if (helperSeconds > 59) {
       rtc.readTime();
       helperSeconds = rtc.getSeconds();
+      // Alle 23 Stunden die Zeit vom NTP-Server holen.
+      if ((nextNtpSync <= 0) && (WiFi.status() == WL_CONNECTED)) {
+        if (setTimeFromNtp(ntpServerName)) nextNtpSync = 1380;
+      }
+      nextNtpSync--;
+      DEBUG_PRINT("Minutes until next NTP-sync: ");
+      DEBUG_PRINTLN(nextNtpSync);
     }
 
-    /******************************************************************************
-      Render STD_MODE_*
-    ******************************************************************************/
-
     switch (mode) {
+
+      /******************************************************************************
+        Render STD_MODE_*
+      ******************************************************************************/
+
       case STD_MODE_NORMAL:
         // Aktuelle Zeit in die Matrix schreiben.
         renderer.clearScreenBuffer(matrix);
@@ -232,10 +238,10 @@ void loop() {
         renderer.clearScreenBuffer(matrix);
         if (rtc.getHours() < 12) {
           renderer.setMenuText("AM", Renderer::TEXT_POS_MIDDLE, matrix);
-          DEBUG_PRINTLN(F("AM"));
+          DEBUG_PRINTLN("AM");
         } else {
           renderer.setMenuText("PM", Renderer::TEXT_POS_MIDDLE, matrix);
-          DEBUG_PRINTLN(F("PM"));
+          DEBUG_PRINTLN("PM");
         }
         break;
 #endif
@@ -616,9 +622,6 @@ void loop() {
       case EXT_MODE_TEST:
         renderer.clearScreenBuffer(matrix);
         renderer.setCorners(helperSeconds % 5, matrix);
-#ifdef USE_STD_MODE_ALARM
-        renderer.activateAlarmLed(matrix); // Alarm-LED
-#endif
         testColumn++;
         if (testColumn > 10) {
           testColumn = 0;
@@ -629,14 +632,19 @@ void loop() {
         DEBUG_PRINTLN(F("LED anim."));
         break;
 #endif
+
+      /******************************************************************************
+         Matrix gerendert.
+      ******************************************************************************/
+
       default:
         break;
     }
 
 #ifdef IR_LETTER_OFF
+    // Die LED mit dem IR-Sensor abschalten.
     IR_LETTER_OFF;
 #endif
-
 
 #ifdef DEBUG_MATRIX
     // Matrix auf der Konsole ausgeben.
@@ -674,11 +682,6 @@ void loop() {
     ledDriver.wakeUp();
   }
 #endif
-
-  // Zeit von einem NTP-Server holen. Um 4:00h.
-  if ((rtc.getMinutesOfDay(0) == 240) && (helperSeconds == 0)) {
-    if (WiFi.status() == WL_CONNECTED) setTimeFromNTP(ntpServerName);
-  }
 
 #ifdef ENABLE_SQW_LED
   // LED blinken lassen.
@@ -1237,7 +1240,7 @@ void updateFallBackCounter() {
 }
 
 /******************************************************************************
-   Die Zeit stellen.
+   Set time.
 ******************************************************************************/
 
 void incDecMinutes(boolean inc) {
@@ -1272,7 +1275,7 @@ void resetSeconds() {
 }
 
 /******************************************************************************
-   Den Modus stellen.
+   Set mode.
 ******************************************************************************/
 
 void setMode(Mode a_mode) {
@@ -1294,7 +1297,7 @@ bool isCurrentTimeInNightRange() {
 }
 
 /******************************************************************************
-   EEPROM zurueck setzen.
+   Set EEPROM to defaults.
 ******************************************************************************/
 
 void factoryReset() {
@@ -1307,13 +1310,13 @@ void factoryReset() {
    Set time from NTP-Server.
 ******************************************************************************/
 
-void setTimeFromNTP(const char* ntpServerName) {
+boolean setTimeFromNtp(const char* ntpServerName) {
   WiFi.hostByName(ntpServerName, timeServerIP);
   sendNTPpacket(timeServerIP); // send an NTP packet to a time server
   delay(1000);
   int cb = udp.parsePacket();
   if (cb) {
-    DEBUG_PRINT("packet received, length=");
+    DEBUG_PRINT("Packet received, length=");
     DEBUG_PRINTLN(cb);
     udp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer
     unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
@@ -1322,17 +1325,21 @@ void setTimeFromNTP(const char* ntpServerName) {
     const unsigned long seventyYears = 2208988800UL;
     unsigned long epoch = secsSince1900 - seventyYears;
     DEBUG_PRINT("UTC time is ");
-    DEBUG_PRINT((epoch  % 86400L) / 3600); // Stunde
+    DEBUG_PRINT((epoch % 86400L) / 3600); // Stunde
     DEBUG_PRINT(':');
-    DEBUG_PRINT((epoch  % 3600) / 60); // Minute
+    DEBUG_PRINT((epoch % 3600) / 60); // Minute
     DEBUG_PRINT(':');
     DEBUG_PRINTLN(epoch % 60); // Sekunde
-    rtc.setHours(((epoch  % 86400L) / 3600) + UTC_OFFSET);
-    rtc.setMinutes((epoch  % 3600) / 60);
+    rtc.setHours(((epoch % 86400L) / 3600) + UTC_OFFSET);
+    rtc.setMinutes((epoch % 3600) / 60);
     rtc.setSeconds(epoch % 60);
     rtc.writeTime();
     helperSeconds = rtc.getSeconds();
     DEBUG_PRINTLN("Time written to RTC.");
+    return true;
+  } else {
+    DEBUG_PRINT("Sorry, no packet received.");
+    return false;
   }
 }
 

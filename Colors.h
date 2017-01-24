@@ -11,7 +11,7 @@ typedef struct color_s {
   byte blue;
 } color_t;
 
-const color_t defaultColors[] PROGMEM = {
+const color_t defaultColors[] = {
   {255, 255, 255},
   {255, 0, 0},
   {0, 255, 0},
@@ -54,7 +54,6 @@ enum eColors : byte {
   color_purple3,
   color_purple4,
   color_single_max = color_purple4,
-
   color_rgb_continuous,
   color_rgb_step,
   color_max = color_rgb_step,

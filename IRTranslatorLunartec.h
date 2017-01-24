@@ -1,6 +1,5 @@
 /*
    IRTranslatorLunartec
-
 */
 
 #ifndef IRTRANSLATORLUNARTEC_H

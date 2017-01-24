@@ -7,8 +7,9 @@
     Eine Firmware der Selbstbau-QLOCKTWO.
   *********************************************************************************************************************
 
-  QLOCKFOUR NodeMCU ist eine Firmware fuer eine Selbstbau-QLOCKTWO. Sie gleicht die Zeit einmal am Tag per NTP mit
-  einem Zeitserver im Internet ab.
+  QLOCKFOUR NodeMCU ist eine Firmware fuer die Selbstbau-QLOCKTWO.
+  Sie gleicht die Zeit einmal am Tag per NTP mit einem Zeitserver im Internet ab. Die Web-Seite der Uhr wird in Zukunft
+  zur Steuerung, Konfiguration und fuer Infos bereit stehen.
   Einher geht die Firmware mit dem BOARD_NODEMCU bestehend aus NodeMCU/ESP8266 und einem DS3231-RTC-Modul.
   Ein Video gibt es hier: https://www.youtube.com/watch?v=X_I5B-dErzE&feature=youtu.be
   Die Firmware gibt es hier: https://github.com/ch570512/Qlockfour
@@ -23,11 +24,11 @@
 
   Zeitanzeige: Der Standardmodus der Uhr. Er zeigt die Zeit an. :)
   Anzeige AM/PM: Zeigt an, ob es vormittags (AM) oder nachmittags (PM) ist. (USE_STD_MODE_AMPM)
-  Sekunden: Anzeige der Sekunden. Hier H+ und M+ zusammen druecken zeigt die Demoevents. (USE_STD_MODE_SECONDS)
+  Sekunden: Anzeige der Sekunden. (USE_STD_MODE_SECONDS)
   Datum: Anzeige des aktuellen Tages und Monats. (USE_STD_MODE_DATE)
   Temperatur: Anzeige der gemessenen Temperatur. (USE_STD_MODE_TEMP)
   Helligkeit: H+ und M+ druecken um die LEDs im manuellen Modus heller oder dunkler zu stellen.
-              Nicht sichtbar, wenn die automatische Helligkeitsregelung eingeschaltet ist.
+              Wird nicht angezeigt, wenn die automatische Helligkeitsregelung eingeschaltet ist.
 
   *** Erweiterte Modi ***
 
@@ -53,20 +54,20 @@
   LED-Test: Laesst einen senkrechten Streifen ueber das Display wandern. (USE_EXT_MODE_TEST)
 
   *** sonstige Schalter und Parameter ***
-  
+
   WLAN_SSID:
   WLAN_PASS:
   NTP_SERVER:
   UTC_OFFSET:
   LED_TEST_INTRO:      Laesst alle LEDs nach dem Start der Uhr fuer 3 Sekunden leuchten.
   NONE_TECHNICAL_ZERO: Zeigt die Null ohne den diagonalen Strich.
-
-  BOARD_NODEMCU:       Bitte eine externe 5V Stromquelle verwenden da sonst evtl. der NodeMCU und/oder der USB-Port des
-                       Computers wegen des hohen Stroms der LEDs durchbrennt.
-  ENABLE_SQW_LED:      Zeigt mit Hilfe der LED auf dem Board die Funktion der RTC an. Sie blinkt einmal pro Sekunde.
-  TEMP_OFFSET:         Gibt an, um wieviel Grad die gemessene Temperatur (+ oder -) korrigiert werden soll.
   IR_LETTER_OFF:       Schaltet die LED hinter dem IR-Sensor dauerhaft ab. Das verbessert den IR-Empfang.
                        Hier das K vor Uhr: letzte Zeile (matrix[9]), achter Buchstabe (0b1111111011111111).
+  TEMP_OFFSET:         Gibt an, um wieviel Grad die gemessene Temperatur (+ oder -) korrigiert werden soll.
+  BOARD_NODEMCU:       Bitte eine externe 5V Stromquelle verwenden da sonst evtl. der NodeMCU und/oder der USB-Port des
+                       Computers wegen des hohen Stroms der LEDs durchbrennt. Dateien mit Informationen liegen im
+                       Verzeichnis. Der Aufbau auf einer kleinen Lochrasterplatine ist relativ einfach moeglich.
+  ENABLE_SQW_LED:      Zeigt mit Hilfe der LED auf dem Board die Funktion der RTC an. Sie blinkt einmal pro Sekunde.
   LED_DRIVER_NEOPIXEL: WS2812B-RGB-LED-Streifen.
   LED_DRIVER_LPD8806:  LPD8806-RGB(W)-LED-Streifen.
   RGB_LEDS:            RGB-LEDs mit waagerechtem Streifen-Layout wie dem Moodlight von Christian.
@@ -77,7 +78,7 @@
   REMOTE_MOONCANDLES:  Fernbedienung von Mooncandles.
   REMOTE_LUNARTEC:     Fernbedienung von Lunartec.
   REMOTE_CLT:          Fernbedienung der CLT2.
-  REMOTE_APPLE:        Alte kleine weisse Fernbedienung fuer iPod von Apple:
+  REMOTE_APPLE:        Alte kleine weisse Fernbedienung fuer den iPod von Apple:
                        Play: Standard Modi
                        Menu: Erweiterte Modi
                        Back: Ruecksprung zur Zeitanzeige
@@ -106,12 +107,12 @@
 
   LDR_MIN_PERCENT:     Minimale Helligkeit der LEDs in Prozent.
   LDR_MAX_PERCENT:     Maximale Helligkeit der LEDs in Prozent.
-  LDR_HYSTERESE:
+  LDR_HYSTERESE:       Verzoegerung mit der die Helligkeit angepasst wird.
   LDR_CHECK_RATE:      Geschwindigkeit mit der die Helligkeit angepasst wird.
 
-  SERIAL_SPEED:        Geschwindigkeit der seriellen Schnittstelle fuer die Debugging Konsole.
-  DEBUG:               Gibt viele Informationen in der seriellen Konsole aus.
-  DEBUG_TIME:          Gibt die Zeit aus.
+  SERIAL_SPEED:        Geschwindigkeit der seriellen Schnittstelle fuer die serielle Konsole.
+  DEBUG:               Gibt technische Informationen in der seriellen Konsole aus.
+  DEBUG_TIME:          Gibt die aktuelle Zeit aus.
   DEBUG_MATRIX:        Rendert die Ausgabe der Matrix fuer die deutsche Front in der seriellen Konsole.
   DEBUG_SET_DEFAULTS:  Schreibt die Default-Werte bei jedem Start in den EEPROM.
 
@@ -136,26 +137,26 @@
   Standard Menu
 ******************************************************************************/
 
-// Show AM/PM
+// Show AM/PM.
 #define USE_STD_MODE_AMPM
 
-// Show seconds
+// Show seconds.
 #define USE_STD_MODE_SECONDS
 
-// Show date
+// Show date.
 #define USE_STD_MODE_DATE
 
-// Show temperature
+// Show temperature.
 #define USE_STD_MODE_TEMP
 
 /******************************************************************************
   Extended Menu
 ******************************************************************************/
 
-// MAIN/TIME/TEST titles
+// MAIN/TIME/TEST titles.
 #define USE_EXT_MODE_TITLES
 
-// Languages
+// Languages.
 #define ENABLE_LANGUAGE_DE
 //#define ENABLE_LANGUAGE_DE_MKF
 //#define ENABLE_LANGUAGE_D3
@@ -166,84 +167,88 @@
 //#define ENABLE_LANGUAGE_NL
 //#define ENABLE_LANGUAGE_ES
 
-// Setup to disable "It is"
+// Setup to disable "It is".
 #define USE_EXT_MODE_IT_IS
 
-// Setup for date
+// Setup date.
 #define USE_EXT_MODE_DATE_MANUALLY
 
-// Setup for night on/off
+// Setup night on/off.
 #define USE_EXT_MODE_NIGHT_OFF
 
-// LED test
+// LED test.
 #define USE_EXT_MODE_TEST
 
 /******************************************************************************
   Settings
 ******************************************************************************/
 
-// WLAN settings
-#define WLAN_SSID "Nexus-6P"
-#define WLAN_PASS "blablabla"
+// WLAN settings.
+#define WLAN_SSID "MeineWLANSSID"
+#define WLAN_PASS "HierMeinWLANKennwort"
 
-// NTP-Server
+// NTP-Server.
 #define NTP_SERVER "pool.ntp.org"
 
-// Offset from GMT/UTC
+// Offset from GMT/UTC.
 #define UTC_OFFSET +1
 
-// Turn on all LEDs for 3s on power-up
+// Turn on all LEDs for 3s on power-up.
 #define LED_TEST_INTRO
 
-// None technical zero
+// None technical zero.
 //#define NONE_TECHNICAL_ZERO
 
-// Board
-#define BOARD_NODEMCU
-
-// LED on board
-#define ENABLE_SQW_LED
-
-// Turn off the letter containing the IR-Sensor (here: 10, 8)
+// Turn off the letter containing the IR-Sensor (here: 10, 8).
 #define IR_LETTER_OFF matrix[9] &= 0b1111111011111111
 
-// Temperature-Sensor
+// Temperature-Sensor.
 #define TEMP_OFFSET 5
 
-// LED-Driver
+// Board.
+#define BOARD_NODEMCU
+
+// LED on board.
+#define ENABLE_SQW_LED
+
+// LED-Driver.
 #define LED_DRIVER_NEOPIXEL
-//#define LED_DRIVER_LPD8806 (not working yet...)
+//#define LED_DRIVER_LPD8806
 
-// Type of LEDs
+// LED-Type.
 #define RGB_LEDS
-//#define RGBW_LEDS (not working yet...)
-//#define RGBW_LEDS_CLT2 (not working yet...)
+//#define RGBW_LEDS
+//#define RGBW_LEDS_CLT2
 
-// IR-Remote
+// LED-Stripe layout. (coming soon...)
+//#define MOODLIGHT
+//#define CLT2
+
+// IR-Remote.
 //#define REMOTE_SPARKFUN
 //#define REMOTE_MOONCANDLES
 //#define REMOTE_LUNARTEC
 //#define REMOTE_CLT2
-//#define REMOTE_APPLE // Apple Remote Control for iPod
-#define REMOTE_PHILIPS // Philips SRP1 101/10 - Code 0815
+//#define REMOTE_APPLE
+#define REMOTE_PHILIPS
 
-// LDR
+// LDR.
 #define LDR_MIN_PERCENT 5
 #define LDR_MAX_PERCENT 100
 #define LDR_HYSTERESE 50
 #define LDR_CHECK_RATE 75
 
 // misc.
-#define FIRMWARE_VERSION "qffw_20170123"
+#define FIRMWARE_VERSION "qffw_20170124"
 
 /******************************************************************************
   Debug to serial console.
 ******************************************************************************/
 
-#define SERIAL_SPEED 57600   // Set speed for debuging console
-//#define DEBUG                // Switch on debug
-//#define DEBUG_TIME           // Shows the time every secound
-#define DEBUG_MATRIX        // Renders the matrix to console - German front - Works best with Putty
-//#define DEBUG_SET_DEFAULTS  // Sets the EEPROM to defauls on every startup
+#define SERIAL_SPEED 57600   // Set speed for debuging console.
+#define DEBUG                // Switch on debug.
+#define DEBUG_TIME           // Shows the time every secound.
+//#define DEBUG_MATRIX        // Renders the matrix to console - German front - Works best with Putty.
+//#define DEBUG_SET_DEFAULTS  // Sets the EEPROM to defauls on every startup.
 
 #endif
