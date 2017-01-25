@@ -59,7 +59,6 @@ void Transitions::shiftColumnUp (word matrixNew[16], word matrix[16], byte colum
 boolean Transitions::nextMatrixStep(word matrixWeak[16], word matrixTime[16], word matrixMatrix[16], word matrix[16]) {
   byte loopCount = random(0, 5);
   byte column;
-  delay(140); // Das geht alles zu schnell auf dem ESP8266. :)
   if (!_ereasingDone) {
     shiftDownMatrixErease(matrixMatrix, matrixWeak);
     if (random(0, 3) > 0)
