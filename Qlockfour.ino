@@ -8,6 +8,9 @@
 
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
+#include <WiFiClient.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
 #include <IRremoteESP8266.h>
@@ -19,6 +22,7 @@
 #include "LedDriver.h"
 #include "LedDriverNeoPixel.h"
 #include "LedDriverLPD8806.h"
+#include "LedDriverLPD8806RGBW.h"
 #include "Renderer.h"
 #include "IRTranslator.h"
 #include "IRTranslatorSparkfun.h"
@@ -42,6 +46,9 @@ LedDriverNeoPixel ledDriver(PIN_LEDS_DATA);
 #endif
 #ifdef LED_DRIVER_LPD8806
 LedDriverLPD8806 ledDriver(PIN_LEDS_DATA, PIN_LEDS_CLOCK);
+#endif
+#ifdef LED_DRIVER_LPD8806RGBW
+LedDriverLPD8806RGBW ledDriver(PIN_LEDS_DATA, PIN_LEDS_CLOCK);
 #endif
 
 Settings settings;
@@ -97,6 +104,7 @@ const int NTP_PACKET_SIZE = 48;
 byte packetBuffer[NTP_PACKET_SIZE];
 WiFiUDP udp;
 int nextNtpSync = 0;
+ESP8266WebServer server(80);
 
 /******************************************************************************
    setup()
@@ -171,6 +179,9 @@ void setup() {
     DEBUG_PRINT("Starting UDP on Port ");
     udp.begin(localPort);
     DEBUG_PRINTLN(udp.localPort());
+    if (MDNS.begin("esp8266")) DEBUG_PRINTLN("MDNS responder started.");
+    server.on("/", handleRoot);
+    server.begin();
   }
 }
 
@@ -179,6 +190,9 @@ void setup() {
 ******************************************************************************/
 
 void loop() {
+
+  // HTTP-Anfragen entgegennehmen.
+  server.handleClient();
 
   // LDR lesen und Helligkeit einstellen.
   if (settings.getUseLdr()) {
@@ -1368,6 +1382,14 @@ unsigned long sendNTPpacket(IPAddress & address)
   udp.beginPacket(address, 123); //NTP requests are to port 123
   udp.write(packetBuffer, NTP_PACKET_SIZE);
   udp.endPacket();
+}
+
+/******************************************************************************
+   Web-Server.
+******************************************************************************/
+
+void handleRoot() {
+  server.send(200, "text/html","<font face=\"Arial\"><h2>Hello from QLOCKFOUR NodeMCU!</h2>Time until next NTP-Sync: " + (String)nextNtpSync + " Minutes.<br>That's all for now...</font>");
 }
 
 /******************************************************************************

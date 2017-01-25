@@ -1,4 +1,4 @@
-/*
+/**
    LedDriverLPD8806
 */
 
@@ -7,19 +7,17 @@
 
 #define NUM_PIXEL 115
 
-/*
-   Konstruktor.
+#define FADINGCOUNTERLOAD 25
+#define SLIDINGCOUNTERLOAD 350
+#define MATRIXCOUNTERLOAD 950
+#define FADINGDURATION 5
+#define NORMALCOUNTERLOAD 1000
+
+/**
+   Initialisierung.
 */
 LedDriverLPD8806::LedDriverLPD8806(byte dataPin, byte clockPin) {
-#ifdef RGB_LEDS
   _strip = new LPD8806(NUM_PIXEL, dataPin, clockPin);
-#endif
-#ifdef RGBW_LEDS
-  _strip = new LPD8806RGBW(NUM_PIXEL, dataPin, clockPin);
-#endif
-#ifdef RGBW_LEDS_CLT2
-  _strip = new LPD8806RGBW(NUM_PIXEL, dataPin, clockPin);
-#endif
   _strip->begin();
   _wheelPos = 0;
   _transitionCounter = 0;
@@ -103,6 +101,7 @@ void LedDriverLPD8806::writeScreenBufferToMatrix(word matrix[16], boolean onChan
 
     if (onChange || _demoTransition) {
 
+      // if (((helperSeconds == 0) || _demoTransition) && (mode == STD_MODE_NORMAL) && _transitionCompleted && !evtActive) {
       if (((helperSeconds == 0) || _demoTransition) && (mode == STD_MODE_NORMAL) && _transitionCompleted) {
         switch (settings.getTransitionMode()) {
           case Settings::TRANSITION_MODE_FADE:
@@ -318,10 +317,11 @@ void LedDriverLPD8806::clearData() {
    Einen X/Y-koordinierten Pixel in der Matrix setzen.
 */
 void LedDriverLPD8806::_setPixel(byte x, byte y, uint32_t c) {
-#ifdef RGBW_LEDS_CLT2
-  _setPixel(y + (x * 10), c);
-#else
+#ifdef LED_LAYOUT_MOODLIGHT
   _setPixel(x + (y * 11), c);
+#endif
+#ifdef LED_LAYOUT_CLT2
+  _setPixel(y + (x * 10), c);
 #endif
 }
 
@@ -329,8 +329,7 @@ void LedDriverLPD8806::_setPixel(byte x, byte y, uint32_t c) {
    Einen Pixel im Streifen setzten.
 */
 void LedDriverLPD8806::_setPixel(byte num, uint32_t c) {
-
-#ifdef RGBW_LEDS
+#ifdef LED_LAYOUT_MOODLIGHT
   if (num < 110) {
     if ((num / 11) % 2 == 0) {
       _strip->setPixelColor(num, c);
@@ -351,7 +350,7 @@ void LedDriverLPD8806::_setPixel(byte num, uint32_t c) {
       case 113:
         _strip->setPixelColor(110, c);
         break;
-      case 114:                         // die Alarm-LED
+      case 114:
         _strip->setPixelColor(114, c);
         break;
       default:
@@ -359,38 +358,7 @@ void LedDriverLPD8806::_setPixel(byte num, uint32_t c) {
     }
   }
 #endif
-
-#ifdef RGB_LEDS
-  if (num < 110) {
-    if ((num / 11) % 2 == 0) {
-      _strip->setPixelColor(num + (num / 11), c);
-    } else {
-      _strip->setPixelColor(((num / 11) * 12) + 11 - (num % 11), c);
-    }
-  } else {
-    switch (num) {
-      case 110:
-        _strip->setPixelColor(111 + 11, c);
-        break;
-      case 111:
-        _strip->setPixelColor(112 + 12, c);
-        break;
-      case 112:
-        _strip->setPixelColor(113 + 13, c);
-        break;
-      case 113:
-        _strip->setPixelColor(110 + 10, c);
-        break;
-      case 114:
-        _strip->setPixelColor(114 + 14, c);
-        break;
-      default:
-        ;
-    }
-  }
-#endif
-
-#ifdef RGBW_LEDS_CLT2
+#ifdef LED_LAYOUT_CLT2
   byte ledNum;
   if (num < 110) {
     if ((num / 10) % 2 == 0) {
@@ -432,14 +400,9 @@ void LedDriverLPD8806::_setPixel(byte num, uint32_t c) {
     }
   }
 #endif
-
   delay(1);
 }
 
-/**
-   Funktion fuer saubere 'Regenbogen'-Farben.
-   Kopiert aus den Adafruit-Beispielen (strand).
-*/
 uint32_t LedDriverLPD8806::_wheel(byte brightness, byte wheelPos) {
   if (wheelPos < 85) {
     return _strip->Color(_brightnessScaleColor(brightness, wheelPos * 3), _brightnessScaleColor(brightness, 255 - wheelPos * 3), _brightnessScaleColor(brightness, 0));
@@ -452,20 +415,12 @@ uint32_t LedDriverLPD8806::_wheel(byte brightness, byte wheelPos) {
   }
 }
 
-/**
-   Hilfsfunktion fuer das Skalieren der Farben.
-*/
 byte LedDriverLPD8806::_brightnessScaleColor(byte brightness, byte colorPart) {
   return map(brightness, 0, 100, 0, colorPart / 2); // LPD8806 kann nur 7 bit Farben! (also 0..127, nicht 0..255)
 }
-
-/**
-   Streifen loeschen.
-*/
 
 void LedDriverLPD8806::_clear() {
   for (byte i = 0; i < NUM_PIXEL; i++) {
     _strip->setPixelColor(i, 0);
   }
 }
-

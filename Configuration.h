@@ -16,6 +16,7 @@
 
   Je nach Schalter (USE_...) und Parameter (ABC_...) in der Konfiguration stehen verschiedene Funktionen der Uhr
   zur Verfuegung.
+  
   Generell blinkt das Display bei der Moeglichkeit eine Zeit einzustellen. Ausserdem wird der Vormittag durch AM, der
   Nachmittag durch PM in der originalen Front angezeigt. Bei Sprachen die AM und PM nicht enthalten, leuchtet der erste
   Buchstabe fuer AM, der zweite Buchstabe fuer PM.
@@ -64,15 +65,18 @@
   IR_LETTER_OFF:       Schaltet die LED hinter dem IR-Sensor dauerhaft ab. Das verbessert den IR-Empfang.
                        Hier das K vor Uhr: letzte Zeile (matrix[9]), achter Buchstabe (0b1111111011111111).
   TEMP_OFFSET:         Gibt an, um wieviel Grad die gemessene Temperatur (+ oder -) korrigiert werden soll.
+  
   BOARD_NODEMCU:       Bitte eine externe 5V Stromquelle verwenden da sonst evtl. der NodeMCU und/oder der USB-Port des
                        Computers wegen des hohen Stroms der LEDs durchbrennt. Dateien mit Informationen liegen im
                        Verzeichnis. Der Aufbau auf einer kleinen Lochrasterplatine ist relativ einfach moeglich.
   ENABLE_SQW_LED:      Zeigt mit Hilfe der LED auf dem Board die Funktion der RTC an. Sie blinkt einmal pro Sekunde.
+  
   LED_DRIVER_NEOPIXEL: WS2812B-RGB-LED-Streifen.
-  LED_DRIVER_LPD8806:  LPD8806-RGB(W)-LED-Streifen.
-  RGB_LEDS:            RGB-LEDs mit waagerechtem Streifen-Layout wie dem Moodlight von Christian.
-  RGBW_LEDS:           RGBW-LEDs mit waagerechtem Streifen-Layout wie dem Moodlight von Christian.
-  RGBW_LEDS_CLT2:      RGBW-LEDs mit senkrechtem Streifen-Layout der CLT2.
+  LED_DRIVER_LPD8806:  LPD8806-RGB-LED-Streifen.
+  LED_DRIVER_LPD8806RGBW: LPD8806-RGBW-LED-Streifen.
+
+  LED_LAYOUT_MOODLIGHT: LED-Layout nach dem Moodlight von Christian. Waagerecht und Eck-LEDs am Ende des Stripes.
+  LED_LAYOUT_CLT2:      LED-Layout wie in der CLT2. Senkrecht und Eck-LEDs innerhalb des Stripes.
 
   REMOTE_SPARKFUN:     Fernbedienung von Sparkfun.
   REMOTE_MOONCANDLES:  Fernbedienung von Mooncandles.
@@ -158,14 +162,14 @@
 
 // Languages.
 #define ENABLE_LANGUAGE_DE
-//#define ENABLE_LANGUAGE_DE_MKF
-//#define ENABLE_LANGUAGE_D3
+#define ENABLE_LANGUAGE_DE_MKF
+#define ENABLE_LANGUAGE_D3
 #define ENABLE_LANGUAGE_CH
-//#define ENABLE_LANGUAGE_EN
-//#define ENABLE_LANGUAGE_FR
-//#define ENABLE_LANGUAGE_IT
-//#define ENABLE_LANGUAGE_NL
-//#define ENABLE_LANGUAGE_ES
+#define ENABLE_LANGUAGE_EN
+#define ENABLE_LANGUAGE_FR
+#define ENABLE_LANGUAGE_IT
+#define ENABLE_LANGUAGE_NL
+#define ENABLE_LANGUAGE_ES
 
 // Setup to disable "It is".
 #define USE_EXT_MODE_IT_IS
@@ -200,7 +204,7 @@
 //#define NONE_TECHNICAL_ZERO
 
 // Turn off the letter containing the IR-Sensor (here: 10, 8).
-#define IR_LETTER_OFF matrix[9] &= 0b1111111011111111
+//#define IR_LETTER_OFF matrix[9] &= 0b1111111011111111
 
 // Temperature-Sensor.
 #define TEMP_OFFSET 5
@@ -214,15 +218,11 @@
 // LED-Driver.
 #define LED_DRIVER_NEOPIXEL
 //#define LED_DRIVER_LPD8806
+//#define LED_DRIVER_LPD8806RGBW
 
-// LED-Type.
-#define RGB_LEDS
-//#define RGBW_LEDS
-//#define RGBW_LEDS_CLT2
-
-// LED-Stripe layout. (coming soon...)
-//#define MOODLIGHT
-//#define CLT2
+// LED-Layout.
+#define LED_LAYOUT_MOODLIGHT
+//#define LED_LAYOUT_CLT2
 
 // IR-Remote.
 //#define REMOTE_SPARKFUN
@@ -239,15 +239,15 @@
 #define LDR_CHECK_RATE 75
 
 // misc.
-#define FIRMWARE_VERSION "qffw_20170124"
+#define FIRMWARE_VERSION "qffw_20170125"
 
 /******************************************************************************
   Debug to serial console.
 ******************************************************************************/
 
-#define SERIAL_SPEED 57600   // Set speed for debuging console.
-#define DEBUG                // Switch on debug.
-#define DEBUG_TIME           // Shows the time every secound.
+#define SERIAL_SPEED 57600    // Set speed for debuging console.
+//#define DEBUG               // Switch on debug.
+//#define DEBUG_TIME          // Shows the time every secound.
 //#define DEBUG_MATRIX        // Renders the matrix to console - German front - Works best with Putty.
 //#define DEBUG_SET_DEFAULTS  // Sets the EEPROM to defauls on every startup.
 

@@ -1,17 +1,18 @@
 /*
-   LedDriverLPD8806
+   LedDriverLPD8806RGBW
 */
 
-#ifndef LED_DRIVER_LPD8806_H
-#define LED_DRIVER_LPD8806_H
+#ifndef LED_DRIVER_LPD8806RGBW_H
+#define LED_DRIVER_LPD8806RGBW_H
 
 #include "Arduino.h"
 #include "LedDriver.h"
-#include <LPD8806.h>
+#include <LPD8806RGBW.h>
 
-class LedDriverLPD8806 : public LedDriver {
+
+class LedDriverLPD8806RGBW : public LedDriver {
   public:
-    LedDriverLPD8806(byte dataPin, byte clockPin);
+    LedDriverLPD8806RGBW(byte dataPin, byte clockPin);
 
     void init();
 
@@ -45,7 +46,7 @@ class LedDriverLPD8806 : public LedDriver {
 
     unsigned int _lastLEDsOn;
 
-    LPD8806 *_strip;
+    LPD8806RGBW *_strip;
 
 };
 

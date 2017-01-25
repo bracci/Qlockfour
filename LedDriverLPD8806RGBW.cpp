@@ -1,23 +1,23 @@
-/*
-   LedDriverNeoPixel
+/**
+   LedDriverLPD8806RGBW
 */
 
-#include "LedDriverNeoPixel.h"
+#include "LedDriverLPD8806RGBW.h"
 #include "Debug.h"
 
 #define NUM_PIXEL 115
 
-#define FADINGCOUNTERLOAD 100
-#define SLIDINGCOUNTERLOAD 525
-#define MATRIXCOUNTERLOAD 1400
+#define FADINGCOUNTERLOAD 25
+#define SLIDINGCOUNTERLOAD 350
+#define MATRIXCOUNTERLOAD 950
 #define FADINGDURATION 5
 #define NORMALCOUNTERLOAD 1000
 
-/*
-   Konstruktor.
+/**
+   Initialisierung.
 */
-LedDriverNeoPixel::LedDriverNeoPixel(byte dataPin) {
-  _strip = new Adafruit_NeoPixel(NUM_PIXEL, dataPin, NEO_GRB + NEO_KHZ800);
+LedDriverLPD8806RGBW::LedDriverLPD8806RGBW(byte dataPin, byte clockPin) {
+  _strip = new LPD8806RGBW(NUM_PIXEL, dataPin, clockPin);
   _strip->begin();
   _wheelPos = 0;
   _transitionCounter = 0;
@@ -25,32 +25,35 @@ LedDriverNeoPixel::LedDriverNeoPixel(byte dataPin) {
   _lastColorUpdate = millis();
   _dirty = false;
   _demoTransition = false;
+  _lastLEDsOn = 0;
 }
 
-/*
-   init.
+/**
+   init() wird im Hauptprogramm in init() aufgerufen.
+   Hier sollten die LED-Treiber in eine definierten
+   Ausgangszustand gebracht werden.
 */
-void LedDriverNeoPixel::init() {
+void LedDriverLPD8806RGBW::init() {
   setBrightness(50);
   clearData();
   wakeUp();
 }
 
-void LedDriverNeoPixel::printSignature() {
-  DEBUG_PRINT(F("NeoPixel_WS2812B"));
+void LedDriverLPD8806RGBW::printSignature() {
+  DEBUG_PRINT(F("LPD8806"));
 }
 
-/*
+/**
    Den Bildschirm-Puffer auf die LED-Matrix schreiben.
 
    @param onChange: TRUE, wenn es Aenderungen in dem Bildschirm-Puffer gab,
                     FALSE, wenn es ein Refresh-Aufruf war.
 */
-void LedDriverNeoPixel::writeScreenBufferToMatrix(word matrix[16], boolean onChange, eColors a_color) {
-    
+void LedDriverLPD8806RGBW::writeScreenBufferToMatrix(word matrix[16], boolean onChange, eColors a_color) {
+
   boolean updateWheelColor = false;
   byte wheelPosIncrement = 0;
-  
+
   if ((a_color == color_rgb_continuous) && _transitionCompleted) {
     if ((millis() - _lastColorUpdate) > ((1 + (10 - settings.getColorChangeRate())) * 100)) {
       updateWheelColor = true;
@@ -58,6 +61,7 @@ void LedDriverNeoPixel::writeScreenBufferToMatrix(word matrix[16], boolean onCha
       wheelPosIncrement = 2;
     }
   }
+
   if (a_color == color_rgb_step) {
     if (!(rtc.getMinutes() % 5) && (helperSeconds == 0) &&  onChange) {
       updateWheelColor = true;
@@ -65,13 +69,17 @@ void LedDriverNeoPixel::writeScreenBufferToMatrix(word matrix[16], boolean onCha
       wheelPosIncrement = 200;
     }
   }
+
   if (!_transitionCompleted && (_transitionCounter > 0)) {
     _transitionCounter--;
-  } else {
+  }
+  else
+  {
     _transitionCounter = 0;
   }
 
   if (onChange || _dirty || _demoTransition || updateWheelColor || (((_transitionCounter == 0) || (Settings::TRANSITION_MODE_FADE == settings.getTransitionMode())) && !_transitionCompleted)) {
+
     uint32_t color = 0;
     uint32_t colorNew = 0;
     uint32_t colorOld = 0;
@@ -93,6 +101,7 @@ void LedDriverNeoPixel::writeScreenBufferToMatrix(word matrix[16], boolean onCha
 
     if (onChange || _demoTransition) {
 
+      // if (((helperSeconds == 0) || _demoTransition) && (mode == STD_MODE_NORMAL) && _transitionCompleted && !evtActive) {
       if (((helperSeconds == 0) || _demoTransition) && (mode == STD_MODE_NORMAL) && _transitionCompleted) {
         switch (settings.getTransitionMode()) {
           case Settings::TRANSITION_MODE_FADE:
@@ -133,21 +142,21 @@ void LedDriverNeoPixel::writeScreenBufferToMatrix(word matrix[16], boolean onCha
             ;
         }
       }
-      if (_transitionCompleted) {
-        for (byte i = 0; i < 11; i++) {
-          _matrixOld[i] = 0;
-          _matrixNew[i] = matrix[i];
-          _matrixOverlay[i] = 0;
-        }
-      }
     }
 
+    if (_transitionCompleted) {
+      for (byte i = 0; i < 11; i++) {
+        _matrixOld[i] = 0;
+        _matrixNew[i] = matrix[i];
+        _matrixOverlay[i] = 0;
+      }
+    }
     _demoTransition = false;
 
     if ((_transitionCounter == 0) && !_transitionCompleted) {
       switch (settings.getTransitionMode()) {
         case Settings::TRANSITION_MODE_MATRIX:
-          _transitionCounter = MATRIXCOUNTERLOAD;
+          _transitionCounter = map(_lastLEDsOn, 0, 110, MATRIXCOUNTERLOAD, MATRIXCOUNTERLOAD * 0.4);
           _transitionCompleted = Transitions::nextMatrixStep(_matrixOld, _matrixNew, _matrixOverlay, matrix);
           break;
         case Settings::TRANSITION_MODE_SLIDE:
@@ -182,9 +191,9 @@ void LedDriverNeoPixel::writeScreenBufferToMatrix(word matrix[16], boolean onCha
     **************/
     if (a_color <= color_single_max)
     {
-      color = _strip->Color(_brightnessScaleColor(_brightnessInPercent, pgm_read_byte_near(&defaultColors[a_color].red)), _brightnessScaleColor(_brightnessInPercent, pgm_read_byte_near(&defaultColors[a_color].green)), _brightnessScaleColor(_brightnessInPercent, pgm_read_byte_near(&defaultColors[a_color].blue)));
-      colorNew = _strip->Color(_brightnessScaleColor(brightnessNew, pgm_read_byte_near(&defaultColors[a_color].red)), _brightnessScaleColor(brightnessNew, pgm_read_byte_near(&defaultColors[a_color].green)), _brightnessScaleColor(brightnessNew, pgm_read_byte_near(&defaultColors[a_color].blue)));
-      colorOld = _strip->Color(_brightnessScaleColor(brightnessOld, pgm_read_byte_near(&defaultColors[a_color].red)), _brightnessScaleColor(brightnessOld, pgm_read_byte_near(&defaultColors[a_color].green)), _brightnessScaleColor(brightnessOld, pgm_read_byte_near(&defaultColors[a_color].blue)));
+      color = _strip->Color(_brightnessScaleColor(_brightnessInPercent, pgm_read_byte_near(&defaultColors[a_color].red)), _brightnessScaleColor(_brightnessInPercent, pgm_read_byte_near(&defaultColors[a_color].blue)), _brightnessScaleColor(_brightnessInPercent, pgm_read_byte_near(&defaultColors[a_color].green)));
+      colorNew = _strip->Color(_brightnessScaleColor(brightnessNew, pgm_read_byte_near(&defaultColors[a_color].red)), _brightnessScaleColor(brightnessNew, pgm_read_byte_near(&defaultColors[a_color].blue)), _brightnessScaleColor(brightnessNew, pgm_read_byte_near(&defaultColors[a_color].green)));
+      colorOld = _strip->Color(_brightnessScaleColor(brightnessOld, pgm_read_byte_near(&defaultColors[a_color].red)), _brightnessScaleColor(brightnessOld, pgm_read_byte_near(&defaultColors[a_color].blue)), _brightnessScaleColor(brightnessOld, pgm_read_byte_near(&defaultColors[a_color].green)));
     }
     else if ((a_color == color_rgb_continuous || a_color == color_rgb_step)) {
       if (updateWheelColor) {
@@ -196,16 +205,16 @@ void LedDriverNeoPixel::writeScreenBufferToMatrix(word matrix[16], boolean onCha
     }
 
     if ((settings.getTransitionMode() == Settings::TRANSITION_MODE_MATRIX) && !_transitionCompleted) {
-      colorOverlay1 = _strip->Color(_brightnessScaleColor(_brightnessInPercent, 0), _brightnessScaleColor(_brightnessInPercent, 255), _brightnessScaleColor(_brightnessInPercent, 0));
-      colorOverlay2 = _strip->Color(_brightnessScaleColor(_brightnessInPercent, 0), _brightnessScaleColor(_brightnessInPercent, 255 * 0.5), _brightnessScaleColor(_brightnessInPercent, 0));
-      colorOld = _strip->Color(_brightnessScaleColor(_brightnessInPercent, 0), _brightnessScaleColor(_brightnessInPercent, 255 * 0.1), _brightnessScaleColor(_brightnessInPercent, 0));
+      colorOverlay1 = _strip->Color(_brightnessScaleColor(_brightnessInPercent, 0), _brightnessScaleColor(_brightnessInPercent, 0), _brightnessScaleColor(_brightnessInPercent, 255));
+      colorOverlay2 = _strip->Color(_brightnessScaleColor(_brightnessInPercent, 0), _brightnessScaleColor(_brightnessInPercent, 0), _brightnessScaleColor(_brightnessInPercent, 255 * 0.5));
+      colorOld = _strip->Color(_brightnessScaleColor(_brightnessInPercent, 0), _brightnessScaleColor(_brightnessInPercent, 0), _brightnessScaleColor(_brightnessInPercent, 255 * 0.1));
     }
 
     /*************
        WRITE OUT
     **************/
-
-    _strip->clear();
+    _clear();
+    _lastLEDsOn = 0;
 
     for (byte y = 0; y < 10; y++) {
       for (byte x = 5; x < 16; x++) {
@@ -216,15 +225,19 @@ void LedDriverNeoPixel::writeScreenBufferToMatrix(word matrix[16], boolean onCha
         else {
           if ((_matrixOverlay[y] & t) == t) {
             _setPixel(15 - x, y, colorOverlay1);
+            _lastLEDsOn++;
           }
           else if ((_matrixOverlay[y + 1] & t) == t) {
             _setPixel(15 - x, y, colorOverlay2);
+            _lastLEDsOn++;
           }
           else if ((_matrixOld[y] & t) == t) {
             _setPixel(15 - x, y, colorOld);
+            _lastLEDsOn++;
           }
           else if ((_matrixNew[y] & t) == t) {
             _setPixel(15 - x, y, colorNew);
+            _lastLEDsOn++;
           }
         }
       }
@@ -249,61 +262,61 @@ void LedDriverNeoPixel::writeScreenBufferToMatrix(word matrix[16], boolean onCha
   }
 }
 
-/*
+/**
    Die Helligkeit des Displays anpassen.
 
    @param brightnessInPercent Die Helligkeit.
 */
-void LedDriverNeoPixel::setBrightness(byte brightnessInPercent) {
+void LedDriverLPD8806RGBW::setBrightness(byte brightnessInPercent) {
   if ((brightnessInPercent != _brightnessInPercent) && _transitionCompleted) {
     _brightnessInPercent = brightnessInPercent;
     _dirty = true;
   }
 }
 
-/*
+/**
    Die aktuelle Helligkeit bekommen.
 */
-byte LedDriverNeoPixel::getBrightness() {
+byte LedDriverLPD8806RGBW::getBrightness() {
   return _brightnessInPercent;
 }
 
-/*
+/**
    Anpassung der Groesse des Bildspeichers.
 
    @param linesToWrite Wieviel Zeilen aus dem Bildspeicher sollen
                        geschrieben werden?
 */
-void LedDriverNeoPixel::setLinesToWrite(byte linesToWrite) {
-}
-
-/*
-   Das Display einschalten.
-*/
-void LedDriverNeoPixel::wakeUp() {
+void LedDriverLPD8806RGBW::setLinesToWrite(byte linesToWrite) {
 }
 
 /**
    Das Display ausschalten.
 */
-void LedDriverNeoPixel::shutDown() {
-  _strip->clear();
+void LedDriverLPD8806RGBW::shutDown() {
+  _clear();
   _strip->show();
   _transitionCompleted = true;
 }
 
-/*
+/**
+   Das Display einschalten.
+*/
+void LedDriverLPD8806RGBW::wakeUp() {
+}
+
+/**
    Den Dateninhalt des LED-Treibers loeschen.
 */
-void LedDriverNeoPixel::clearData() {
-  _strip->clear();
+void LedDriverLPD8806RGBW::clearData() {
+  _clear();
   _strip->show();
 }
 
-/*
+/**
    Einen X/Y-koordinierten Pixel in der Matrix setzen.
 */
-void LedDriverNeoPixel::_setPixel(byte x, byte y, uint32_t c) {
+void LedDriverLPD8806RGBW::_setPixel(byte x, byte y, uint32_t c) {
 #ifdef LED_LAYOUT_MOODLIGHT
   _setPixel(x + (y * 11), c);
 #endif
@@ -312,10 +325,10 @@ void LedDriverNeoPixel::_setPixel(byte x, byte y, uint32_t c) {
 #endif
 }
 
-/*
-   Einen Pixel im Streifen setzten (die Eck-LEDs sind am Ende).
+/**
+   Einen Pixel im Streifen setzten.
 */
-void LedDriverNeoPixel::_setPixel(byte num, uint32_t c) {
+void LedDriverLPD8806RGBW::_setPixel(byte num, uint32_t c) {
 #ifdef LED_LAYOUT_MOODLIGHT
   if (num < 110) {
     if ((num / 11) % 2 == 0) {
@@ -387,13 +400,10 @@ void LedDriverNeoPixel::_setPixel(byte num, uint32_t c) {
     }
   }
 #endif
+  delay(1);
 }
 
-/*
-   Funktion fuer saubere 'Regenbogen'-Farben.
-   Kopiert aus den Adafruit-Beispielen (strand)
-*/
-uint32_t LedDriverNeoPixel::_wheel(byte brightness, byte wheelPos) {
+uint32_t LedDriverLPD8806RGBW::_wheel(byte brightness, byte wheelPos) {
   if (wheelPos < 85) {
     return _strip->Color(_brightnessScaleColor(brightness, wheelPos * 3), _brightnessScaleColor(brightness, 255 - wheelPos * 3), _brightnessScaleColor(brightness, 0));
   } else if (wheelPos < 170) {
@@ -405,10 +415,12 @@ uint32_t LedDriverNeoPixel::_wheel(byte brightness, byte wheelPos) {
   }
 }
 
-/*
-   Hilfsfunktion fuer das Skalieren der Farben.
-*/
-byte LedDriverNeoPixel::_brightnessScaleColor(byte brightness, byte colorPart) {
-  return map(brightness, 0, 100, 0, colorPart);
+byte LedDriverLPD8806RGBW::_brightnessScaleColor(byte brightness, byte colorPart) {
+  return map(brightness, 0, 100, 0, colorPart / 2); // LPD8806 kann nur 7 bit Farben! (also 0..127, nicht 0..255)
 }
 
+void LedDriverLPD8806RGBW::_clear() {
+  for (byte i = 0; i < NUM_PIXEL; i++) {
+    _strip->setPixelColor(i, 0);
+  }
+}
