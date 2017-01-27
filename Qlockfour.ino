@@ -31,6 +31,7 @@
 #include "IRTranslatorCLT.h"
 #include "IRTranslatorApple.h"
 #include "IRTranslatorPhilips.h"
+#include "IRTranslatorHX1838.h"
 #include "Staben.h"
 #include "Zahlen.h"
 #include "LDR.h"
@@ -94,6 +95,9 @@ IRTranslatorApple irTranslator;
 #ifdef REMOTE_PHILIPS
 IRTranslatorPhilips irTranslator;
 #endif
+#ifdef REMOTE_HX1838
+IRTranslatorHX1838 irTranslator;
+#endif
 
 char ssid[] = WLAN_SSID;
 char pass[] = WLAN_PASS;
@@ -112,6 +116,7 @@ ESP8266WebServer server(80);
 
 void setup() {
   Serial.begin(SERIAL_SPEED);
+  delay(10);
 
 #ifdef DEBUG_SET_DEFAULTS
   factoryReset();
@@ -162,27 +167,9 @@ void setup() {
   DEBUG_PRINT("Version: ");
   DEBUG_PRINTLN(FIRMWARE_VERSION);
 
-  // Mit WiFi verbinden. Timeout ist 1 Minute.
-  DEBUG_PRINT("Connecting to ");
-  DEBUG_PRINTLN(ssid);
-  int i = 0;
-  WiFi.begin(ssid, pass);
-  while ((WiFi.status() != WL_CONNECTED) && (i < 60)) {
-    delay(1000);
-    i++;
-  }
-  if (WiFi.status() != WL_CONNECTED) DEBUG_PRINTLN("Error connecting to WiFi.");
-  else {
-    DEBUG_PRINTLN("WiFi connected.");
-    DEBUG_PRINT("IP address: ");
-    DEBUG_PRINTLN(WiFi.localIP());
-    DEBUG_PRINT("Starting UDP on Port ");
-    udp.begin(localPort);
-    DEBUG_PRINTLN(udp.localPort());
-    if (MDNS.begin("esp8266")) DEBUG_PRINTLN("MDNS responder started.");
-    server.on("/", handleRoot);
-    server.begin();
-  }
+  initWiFi();
+  setupWebServer();
+
 }
 
 /******************************************************************************
@@ -1385,11 +1372,102 @@ unsigned long sendNTPpacket(IPAddress & address)
 }
 
 /******************************************************************************
-   Web-Server.
+   WiFi, NTP und Web-Server.
 ******************************************************************************/
 
+// Mit WiFi verbinden und NTP einrichten. Timeout ist 1 Minute.
+void initWiFi() {
+  DEBUG_PRINT("Connecting to ");
+  DEBUG_PRINTLN(ssid);
+  int i = 0;
+  WiFi.begin(ssid, pass);
+  while ((WiFi.status() != WL_CONNECTED) && (i < 60)) {
+    delay(1000);
+    i++;
+  }
+  if (WiFi.status() != WL_CONNECTED) DEBUG_PRINTLN("Error connecting to WiFi.");
+  else {
+    DEBUG_PRINTLN("WiFi connected.");
+    DEBUG_PRINT("IP address: ");
+    DEBUG_PRINTLN(WiFi.localIP());
+    DEBUG_PRINT("Starting UDP on Port ");
+    udp.begin(localPort);
+    DEBUG_PRINTLN(udp.localPort());
+  }
+}
+
+void setupWebServer() {
+  if (MDNS.begin("esp8266")) DEBUG_PRINTLN("MDNS responder started.");
+  server.onNotFound(handleNotFound);
+  server.on("/", handleRoot);
+  server.on ( "/handle_TOGGLEBLANK", handle_TOGGLEBLANK );
+  server.on ( "/handle_BUTTON_TIME", handle_BUTTON_TIME );
+  server.on ( "/handle_BUTTON_MODE", handle_BUTTON_MODE );
+  server.on ( "/handle_BUTTON_EXTMODE", handle_BUTTON_EXTMODE );
+  server.on ( "/handle_BUTTON_HOUR_PLUS", handle_BUTTON_HOUR_PLUS );
+  server.on ( "/handle_BUTTON_MINUTE_PLUS", handle_BUTTON_MINUTE_PLUS );
+  server.begin();
+}
+
+void handleNotFound() {
+  String message = "File Not Found.";
+  server.send(404, "text/plain", message);
+}
+
 void handleRoot() {
-  server.send(200, "text/html","<font face=\"Arial\"><h2>Hello from QLOCKFOUR NodeMCU!</h2>Time until next NTP-Sync: " + (String)nextNtpSync + " Minutes.<br>That's all for now...</font>");
+  String message = "<!doctype html><html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\"></head><body><font face=\"Arial\"><center>";
+  message += "<h2>QLOCKFOUR NodeMCU</h2>";
+  message += "<button onclick=\"window.location.href='/handle_TOGGLEBLANK'\">Clock on/off</button>&nbsp;";
+  message += "<button onclick=\"window.location.href='/handle_BUTTON_TIME'\">Time</button><br><br>";
+  message += "<button onclick=\"window.location.href='/handle_BUTTON_MODE'\">Mode</button>&nbsp;";
+  message += "<button onclick=\"window.location.href='/handle_BUTTON_EXTMODE'\">Ext_Mode</button><br><br>";
+  message += "<button onclick=\"window.location.href='/handle_BUTTON_HOUR_PLUS'\">Hour +</button>&nbsp;";
+  message += "<button onclick=\"window.location.href='/handle_BUTTON_MINUTE_PLUS'\">Minute +</button><br><br><br>";
+  message += "<font size=2>Next NTP-Sync in ";
+  message += nextNtpSync;
+  message += " Minutes.";
+  message += "</center></font></font></body></html>";
+  server.send(200, "text/html", message);
+}
+
+void handle_TOGGLEBLANK() {
+  String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
+  server.send ( 200, "text/html", message );
+  setDisplayToToggle();
+}
+
+void handle_BUTTON_TIME() {
+  String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
+  server.send ( 200, "text/html", message );
+  setMode(STD_MODE_NORMAL);
+}
+
+void handle_BUTTON_MODE() {
+  String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
+  server.send ( 200, "text/html", message );
+  modePressed();
+}
+
+void handle_BUTTON_EXTMODE() {
+  String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
+  server.send ( 200, "text/html", message );
+  if (mode < EXT_MODE_START) {
+    setMode(EXT_MODE_START);
+  } else {
+    modePressed();
+  }
+}
+
+void handle_BUTTON_HOUR_PLUS() {
+  String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
+  server.send ( 200, "text/html", message );
+  hourPlusPressed();
+}
+
+void handle_BUTTON_MINUTE_PLUS() {
+  String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
+  server.send ( 200, "text/html", message );
+  minutePlusPressed();
 }
 
 /******************************************************************************

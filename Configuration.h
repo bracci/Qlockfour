@@ -8,9 +8,11 @@
   *********************************************************************************************************************
 
   QLOCKFOUR NodeMCU ist eine Firmware fuer die Selbstbau-QLOCKTWO.
-  Sie gleicht die Zeit einmal am Tag per NTP mit einem Zeitserver im Internet ab. Die Web-Seite der Uhr wird in Zukunft
-  zur Steuerung, Konfiguration und fuer Infos bereit stehen.
+  Sie gleicht die Zeit einmal am Tag per NTP mit einem Zeitserver im Internet ab. Auf der Web-Seite kann man die Uhr
+  steuern, konfigurieren und Infos abrufen.
   Einher geht die Firmware mit dem BOARD_NODEMCU bestehend aus NodeMCU/ESP8266 und einem DS3231-RTC-Modul.
+  Informationen zum schnellen Aufbau liegen im Verzeichnis. Siehe _BOARD_NodeMCU.*
+  
   Ein Video gibt es hier: https://www.youtube.com/watch?v=X_I5B-dErzE&feature=youtu.be
   Die Firmware gibt es hier: https://github.com/ch570512/Qlockfour
 
@@ -108,7 +110,8 @@
                        A/V:   Helligkeit-
                        -/--:  Helligkeit+
                        0:     LDR ein/aus
-
+  REMOTE_HX1838:
+  
   LDR_MIN_PERCENT:     Minimale Helligkeit der LEDs in Prozent.
   LDR_MAX_PERCENT:     Maximale Helligkeit der LEDs in Prozent.
   LDR_HYSTERESE:       Verzoegerung mit der die Helligkeit angepasst wird.
@@ -231,6 +234,7 @@
 //#define REMOTE_CLT2
 //#define REMOTE_APPLE
 #define REMOTE_PHILIPS
+//#define REMOTE_HX1838
 
 // LDR.
 #define LDR_MIN_PERCENT 5
@@ -248,7 +252,7 @@
 #define SERIAL_SPEED 57600    // Set speed for debuging console.
 //#define DEBUG               // Switch on debug.
 //#define DEBUG_TIME          // Shows the time every secound.
-//#define DEBUG_MATRIX        // Renders the matrix to console - German front - Works best with Putty.
+#define DEBUG_MATRIX        // Renders the matrix to console - German front - Works best with Putty.
 //#define DEBUG_SET_DEFAULTS  // Sets the EEPROM to defauls on every startup.
 
 #endif
