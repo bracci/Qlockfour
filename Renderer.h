@@ -26,7 +26,7 @@ enum eLanguage : byte {
 #endif
 #ifdef ENABLE_LANGUAGE_CH
   LANGUAGE_CH,
-  LANGUAGE_CH_X,
+  LANGUAGE_CH_GS,
 #endif
 #ifdef ENABLE_LANGUAGE_EN
   LANGUAGE_EN,
@@ -53,9 +53,10 @@ class Renderer {
       TEXT_POS_MIDDLE = 2,
       TEXT_POS_BOTTOM = 5
     };
-  public:
+    
     Renderer();
 
+    void setHours(byte hours, boolean glatt, byte language, word matrix[16]);
     void setMinutes(char hours, byte minutes, byte language, word matrix[16]);
     void setCorners(byte minutes, word matrix[16]);
     void activateAlarmLed(word matrix[16]);
@@ -64,9 +65,11 @@ class Renderer {
     void setAllScreenBuffer(word matrix[16]);
     void setMenuText(const char* menuText, eTextPos textPos, word matrix[16]);
     void activateAMPM(byte hours, byte language, word matrix[16]);
+    void setPixelInScreenBuffer(byte x, byte y, word matrix[16]);
+    void unsetPixelInScreenBuffer(byte x, byte y, word matrix[16]);
+    boolean getPixelFromScreenBuffer(byte x, byte y, word matrix[16]);
 
   private:
-    void setHours(byte hours, boolean glatt, byte language, word matrix[16]);
     boolean isNumber(char symbol);
 
     // Spezialfaelle

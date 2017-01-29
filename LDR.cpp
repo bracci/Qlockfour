@@ -32,3 +32,4 @@ byte LDR::value() {
   }
   return _outputValue;
 }
+

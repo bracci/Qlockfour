@@ -1,10 +1,10 @@
-/*
+/******************************************************************************
    QLOCKFOUR NodeMCU
    Eine Firmware der Selbstbau-QLOCKTWO.
 
    @mc       NodeMCU/ESP8266
    @created  22.01.2017
-*/
+******************************************************************************/
 
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
@@ -37,9 +37,10 @@
 #include "LDR.h"
 #include "Settings.h"
 #include "Modes.h"
+#include "Alarm.h"
 
 /******************************************************************************
-   Declaration
+   Init
 ******************************************************************************/
 
 #ifdef LED_DRIVER_NEOPIXEL
@@ -52,31 +53,10 @@ LedDriverLPD8806 ledDriver(PIN_LEDS_DATA, PIN_LEDS_CLOCK);
 LedDriverLPD8806RGBW ledDriver(PIN_LEDS_DATA, PIN_LEDS_CLOCK);
 #endif
 
-Settings settings;
-
-Renderer renderer;
-
-word matrix[16];
-
-Mode mode = STD_MODE_NORMAL;
-Mode lastMode = mode;
-byte fallBackCounter = 0;
-
-MyRTC rtc(0x68, PIN_SQW_LED);
-volatile byte helperSeconds;
-volatile bool needsUpdateFromRtc = true;
-
-LDR ldr(PIN_LDR);
-unsigned long lastBrightnessCheck;
-byte brightnessToDisplay;
-
-unsigned long temperature = 0;
-
-byte testColumn;
-
+#ifndef REMOTE_NO_REMOTE
 IRrecv irrecv(PIN_IR_RECEIVER);
 decode_results irDecodeResults;
-
+#endif
 #ifdef REMOTE_SPARKFUN
 IRTranslatorSparkfun irTranslator;
 #endif
@@ -99,6 +79,29 @@ IRTranslatorPhilips irTranslator;
 IRTranslatorHX1838 irTranslator;
 #endif
 
+MyRTC rtc(0x68, PIN_SQW_LED);
+volatile byte helperSeconds;
+volatile bool needsUpdateFromRtc = true;
+unsigned long temperature = 0;
+
+LDR ldr(PIN_LDR);
+unsigned long lastBrightnessCheck;
+byte brightnessToDisplay;
+
+Renderer renderer;
+byte testColumn;
+word matrix[16];
+
+#ifdef USE_STD_MODE_ALARM
+Alarm alarm(PIN_BUZZER);
+#endif
+
+Settings settings;
+
+Mode mode = STD_MODE_NORMAL;
+Mode lastMode = mode;
+byte fallBackCounter = 0;
+
 char ssid[] = WLAN_SSID;
 char pass[] = WLAN_PASS;
 unsigned int localPort = 2390;
@@ -116,7 +119,12 @@ ESP8266WebServer server(80);
 
 void setup() {
   Serial.begin(SERIAL_SPEED);
-  delay(10);
+  delay(500);
+
+  DEBUG_PRINTLN();
+  DEBUG_PRINTLN("QLOCKFOUR NodeMCU");
+  DEBUG_PRINT("Version: ");
+  DEBUG_PRINTLN(FIRMWARE_VERSION);
 
 #ifdef DEBUG_SET_DEFAULTS
   factoryReset();
@@ -135,6 +143,31 @@ void setup() {
   }
   rtc.writeTime();
   helperSeconds = rtc.getSeconds();
+  for (byte i = 0; i < 3; i++) {
+    rtc.statusLed(true);
+#ifdef USE_STD_MODE_ALARM
+    alarm.buzz(true);
+#endif
+    delay(100);
+    rtc.statusLed(false);
+#ifdef USE_STD_MODE_ALARM
+    alarm.buzz(false);
+#endif
+    delay(100);
+  }
+
+#ifndef REMOTE_NO_REMOTE
+  // IR-Empfaenger initialisieren.
+  irrecv.enableIRIn();
+#endif
+
+  // LDR initialisieren.
+  pinMode(PIN_LDR, INPUT);
+  LDR ldr(PIN_LDR);
+
+  // WiFi und WebServer initialisieren.
+  initWiFi();
+  setupWebServer();
 
   // LED-Treiber initialisieren und Display einschalten.
   ledDriver.init();
@@ -143,32 +176,6 @@ void setup() {
   ledDriver.wakeUp();
   ledDriver.setBrightness(settings.getBrightness());
   renderer.clearScreenBuffer(matrix);
-
-  // IR-Empfaenger initialisieren.
-  irrecv.enableIRIn();
-
-  // LDR initialisieren.
-  pinMode(PIN_LDR, INPUT);
-  LDR ldr(PIN_LDR);
-
-#ifdef LED_TEST_INTRO
-  // Renderer-, Leddriver- und LED-Test.
-  unsigned long initMillis = millis();
-  while ((millis() - initMillis) < 3000) {
-    renderer.setAllScreenBuffer(matrix);
-    ledDriver.writeScreenBufferToMatrix(matrix, true, eColors::color_white);
-  }
-  renderer.clearScreenBuffer(matrix);
-  ledDriver.writeScreenBufferToMatrix(matrix, true, eColors::color_white);
-#endif
-
-  DEBUG_PRINTLN();
-  DEBUG_PRINTLN("QLOCKFOUR NodeMCU");
-  DEBUG_PRINT("Version: ");
-  DEBUG_PRINTLN(FIRMWARE_VERSION);
-
-  initWiFi();
-  setupWebServer();
 
 }
 
@@ -194,27 +201,33 @@ void loop() {
     }
   }
 
+  /******************************************************************************
+    Matrix neu rendern, jede Sekunde oder bei Bedarf.
+  ******************************************************************************/
+
   if (needsUpdateFromRtc) {
     needsUpdateFromRtc = false;
     // Alle 60 Sekunden ausführen.
     if (helperSeconds > 59) {
       rtc.readTime();
       helperSeconds = rtc.getSeconds();
+      // Versuchen mit WiFi zu verbinden wenn nicht schon verbunden.
+      if (WiFi.status() != WL_CONNECTED) initWiFi();
       // Alle 23 Stunden die Zeit vom NTP-Server holen.
       if ((nextNtpSync <= 0) && (WiFi.status() == WL_CONNECTED)) {
         if (setTimeFromNtp(ntpServerName)) nextNtpSync = 1380;
       }
       nextNtpSync--;
-      DEBUG_PRINT("Minutes until next NTP-sync: ");
-      DEBUG_PRINTLN(nextNtpSync);
+      DEBUG_PRINT("Next NTP-sync in ");
+      DEBUG_PRINT(nextNtpSync);
+      DEBUG_PRINTLN(" Minutes.");
     }
 
+    /******************************************************************************
+      Render STD_MODE_*
+    ******************************************************************************/
+
     switch (mode) {
-
-      /******************************************************************************
-        Render STD_MODE_*
-      ******************************************************************************/
-
       case STD_MODE_NORMAL:
         // Aktuelle Zeit in die Matrix schreiben.
         renderer.clearScreenBuffer(matrix);
@@ -266,8 +279,8 @@ void loop() {
           matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[rtc.getMonth() / 10][i])) << 11;
           matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[rtc.getMonth() % 10][i])) << 6;
         }
-        ledDriver.setPixelInScreenBuffer(10, 4, matrix);
-        ledDriver.setPixelInScreenBuffer(10, 9, matrix);
+        renderer.setPixelInScreenBuffer(10, 4, matrix);
+        renderer.setPixelInScreenBuffer(10, 9, matrix);
         DEBUG_PRINT(rtc.getDate());
         DEBUG_PRINT(F("."));
         DEBUG_PRINT(rtc.getMonth());
@@ -288,6 +301,40 @@ void loop() {
         DEBUG_PRINTLN(temperature / 5);
         break;
 #endif
+#ifdef USE_STD_MODE_ALARM
+      case STD_MODE_ALARM:
+        renderer.clearScreenBuffer(matrix);
+        if (alarm.getShowAlarmTimeTimer() == 0) {
+          renderer.setMinutes(rtc.getHours(), rtc.getMinutes(), settings.getLanguage(), matrix);
+          renderer.setCorners(rtc.getMinutes(), matrix);
+#ifdef USE_EXT_MODE_IT_IS
+          // "ES IST" weg. Zur vollen Stunde und um halb aber anzeigen.
+          if (!settings.getEsIst() && ((rtc.getMinutes() / 5) % 6)) {
+            renderer.clearEntryWords(settings.getLanguage(), matrix);
+          }
+#endif
+          renderer.activateAlarmLed(matrix); // Alarm-LED
+          DEBUG_PRINT(rtc.getHours() + settings.getTimeShift());
+          DEBUG_PRINT(F(":"));
+          DEBUG_PRINT(rtc.getMinutes());
+          DEBUG_PRINT(F(":"));
+          DEBUG_PRINTLN(helperSeconds);
+        } else {
+          // Alarmzeit blinken lassen
+          if (alarm.getShowAlarmTimeTimer() % 2 == 0) {
+            renderer.setMinutes(alarm.getHours(), alarm.getMinutes(), settings.getLanguage(), matrix);
+            renderer.setCorners(alarm.getMinutes(), matrix);
+            // "ES IST" weg beim Anzeigen der Alarmzeit.
+            renderer.clearEntryWords(settings.getLanguage(), matrix);
+            renderer.activateAMPM(alarm.getHours(), settings.getLanguage(), matrix);
+            renderer.activateAlarmLed(matrix); // Alarm-LED
+          }
+          alarm.decShowAlarmTimeTimer();
+        }
+        DEBUG_PRINT(F("Alarm set to "));
+        DEBUG_PRINTLN(alarm.asString());
+        break;
+#endif
       case STD_MODE_BRIGHTNESS:
         renderer.clearScreenBuffer(matrix);
         brightnessToDisplay = map(settings.getBrightness(), 1, 100, 0, 9);
@@ -306,6 +353,8 @@ void loop() {
         /******************************************************************************
            Render EXT_MODE_*
         ******************************************************************************/
+
+        // MAIN
 
 #ifdef USE_EXT_MODE_TITLES
       case EXT_MODE_TEXT_MAIN:
@@ -436,7 +485,7 @@ void loop() {
             renderer.setMenuText("CH", Renderer::TEXT_POS_MIDDLE, matrix);
             DEBUG_PRINTLN(F("CH"));
             break;
-          case LANGUAGE_CH_X:
+          case LANGUAGE_CH_GS:
             renderer.setMenuText("CH", Renderer::TEXT_POS_TOP, matrix);
             renderer.setMenuText("GS", Renderer::TEXT_POS_BOTTOM, matrix);
             DEBUG_PRINTLN(F("CH GS"));
@@ -479,13 +528,20 @@ void loop() {
       case EXT_MODE_JUMP_TIMEOUT:
         renderer.clearScreenBuffer(matrix);
         renderer.setMenuText("FB", Renderer::TEXT_POS_TOP, matrix);
-        for (byte i = 0; i < 7; i++) {
-          matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[settings.getJumpToNormalTimeout() / 10][i])) << 10;
-          matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[settings.getJumpToNormalTimeout() % 10][i])) << 5;
+        if (helperSeconds % 2 == 0) {
+          for (byte i = 0; i < 5; i++) matrix[5 + i] = 0;
+        } else {
+          for (byte i = 0; i < 7; i++) {
+            matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[settings.getJumpToNormalTimeout() / 10][i])) << 10;
+            matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[settings.getJumpToNormalTimeout() % 10][i])) << 5;
+          }
         }
         DEBUG_PRINT(F("FB "));
         DEBUG_PRINTLN(settings.getJumpToNormalTimeout());
         break;
+
+        // TIME
+
 #ifdef USE_EXT_MODE_TITLES
       case EXT_MODE_TEXT_TIME:
         renderer.clearScreenBuffer(matrix);
@@ -527,9 +583,13 @@ void loop() {
       case EXT_MODE_YEARSET: // Einstellung Jahr
         renderer.clearScreenBuffer(matrix);
         renderer.setMenuText("YY", Renderer::TEXT_POS_TOP, matrix);
-        for (byte i = 0; i < 5; i++) {
-          matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[rtc.getYear() / 10][i])) << 10;
-          matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[rtc.getYear() % 10][i])) << 5;
+        if (helperSeconds % 2 == 0) {
+          for (byte i = 0; i < 5; i++) matrix[5 + i] = 0;
+        } else {
+          for (byte i = 0; i < 5; i++) {
+            matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[rtc.getYear() / 10][i])) << 10;
+            matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[rtc.getYear() % 10][i])) << 5;
+          }
         }
         DEBUG_PRINT(F("YY "));
         DEBUG_PRINTLN(rtc.getYear());
@@ -537,14 +597,18 @@ void loop() {
       case EXT_MODE_MONTHSET: // Einstellung Monat
         renderer.clearScreenBuffer(matrix);
         renderer.setMenuText("MM", Renderer::TEXT_POS_TOP, matrix);
-        if (rtc.getMonth() > 9) {
-          for (byte i = 0; i < 5; i++) {
-            matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[rtc.getMonth() / 10][i])) << 10;
-            matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[rtc.getMonth() % 10][i])) << 5;
-          }
+        if (helperSeconds % 2 == 0) {
+          for (byte i = 0; i < 5; i++) matrix[5 + i] = 0;
         } else {
-          for (byte i = 0; i < 5; i++) {
-            matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[rtc.getMonth() % 10][i])) << 8;
+          if (rtc.getMonth() > 9) {
+            for (byte i = 0; i < 5; i++) {
+              matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[rtc.getMonth() / 10][i])) << 10;
+              matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[rtc.getMonth() % 10][i])) << 5;
+            }
+          } else {
+            for (byte i = 0; i < 5; i++) {
+              matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[rtc.getMonth() % 10][i])) << 8;
+            }
           }
         }
         DEBUG_PRINT(F("MM "));
@@ -553,14 +617,18 @@ void loop() {
       case EXT_MODE_DAYSET: // Einstellung Tag
         renderer.clearScreenBuffer(matrix);
         renderer.setMenuText("DD", Renderer::TEXT_POS_TOP, matrix);
-        if (rtc.getDate() > 9) {
-          for (byte i = 0; i < 5; i++) {
-            matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[rtc.getDate() / 10][i])) << 10;
-            matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[rtc.getDate() % 10][i])) << 5;
-          }
+        if (helperSeconds % 2 == 0) {
+          for (byte i = 0; i < 5; i++) matrix[5 + i] = 0;
         } else {
-          for (byte i = 0; i < 5; i++) {
-            matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[rtc.getDate() % 10][i])) << 8;
+          if (rtc.getDate() > 9) {
+            for (byte i = 0; i < 5; i++) {
+              matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[rtc.getDate() / 10][i])) << 10;
+              matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[rtc.getDate() % 10][i])) << 5;
+            }
+          } else {
+            for (byte i = 0; i < 5; i++) {
+              matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[rtc.getDate() % 10][i])) << 8;
+            }
           }
         }
         DEBUG_PRINT(F("DD "));
@@ -611,6 +679,9 @@ void loop() {
         }
         break;
 #endif
+
+        // TEST
+
 #ifdef USE_EXT_MODE_TITLES
       case EXT_MODE_TEXT_TEST:
         renderer.clearScreenBuffer(matrix);
@@ -623,29 +694,31 @@ void loop() {
       case EXT_MODE_TEST:
         renderer.clearScreenBuffer(matrix);
         renderer.setCorners(helperSeconds % 5, matrix);
+#ifdef USE_STD_MODE_ALARM
+        renderer.activateAlarmLed(matrix);
+#endif
         testColumn++;
         if (testColumn > 10) {
           testColumn = 0;
         }
         for (byte i = 0; i < 11; i++) {
-          ledDriver.setPixelInScreenBuffer(testColumn, i, matrix);
+          renderer.setPixelInScreenBuffer(testColumn, i, matrix);
         }
         DEBUG_PRINTLN(F("LED anim."));
         break;
 #endif
-
-      /******************************************************************************
-         Matrix gerendert.
-      ******************************************************************************/
-
       default:
         break;
     }
 
-#ifdef IR_LETTER_OFF
-    // Die LED mit dem IR-Sensor abschalten.
-    IR_LETTER_OFF;
+#if defined(IR_LETTER_OFF_X) && defined(IR_LETTER_OFF_Y)
+    // Die LED hinter dem IR-Sensor abschalten.
+    renderer.unsetPixelInScreenBuffer(IR_LETTER_OFF_X - 1, IR_LETTER_OFF_Y - 1, matrix);
 #endif
+
+    /******************************************************************************
+       Matrix gerendert.
+    ******************************************************************************/
 
 #ifdef DEBUG_MATRIX
     // Matrix auf der Konsole ausgeben.
@@ -660,6 +733,7 @@ void loop() {
      misc in loop()
   ******************************************************************************/
 
+#ifndef REMOTE_NO_REMOTE
   // Die Fernbedinung abfragen und ggf. reagieren.
   unsigned long lastIrCode = 0;
   if (irrecv.decode(&irDecodeResults)) {
@@ -671,6 +745,29 @@ void loop() {
   if (lastIrCode != 0) {
     remoteAction(lastIrCode, &irTranslator);
   }
+#endif
+
+#ifdef USE_STD_MODE_ALARM
+  // Alarm.
+  if ((mode == STD_MODE_ALARM) && (alarm.getShowAlarmTimeTimer() == 0) && !alarm.isActive()) {
+    if (alarm.getMinutesOfDay(0) == rtc.getMinutesOfDay(0)) {
+      alarm.activate();
+    }
+  }
+  if (alarm.isActive()) {
+    // Nach MAX_BUZZ_TIME Minuten automatisch abschalten.
+    if (alarm.getMinutesOfDay(MAX_BUZZ_TIME) == rtc.getMinutesOfDay(0)) {
+      alarm.deactivate();
+      setMode(STD_MODE_NORMAL);
+    }
+    // Krach machen.
+    if (helperSeconds % 2 == 0) {
+      alarm.buzz(true);
+    } else {
+      alarm.buzz(false);
+    }
+  }
+#endif
 
 #ifdef USE_EXT_MODE_NIGHT_OFF
   // Display zeitgesteuert abschalten.
@@ -689,11 +786,10 @@ void loop() {
   rtc.statusLed(digitalRead(PIN_SQW_SIGNAL) == HIGH);
 #endif
 
-  // Die alte Matrix auf das Display schreiben.
+  // Die Matrix auf die LEDs multiplexen. Nur 'Refresh' des Inhalts um u.a. die Farbe zu setzen.
   if ((mode != STD_MODE_BLANK) && (mode != STD_MODE_NIGHT)) {
     ledDriver.writeScreenBufferToMatrix(matrix, false, settings.getColor());
   }
-
 }
 
 /******************************************************************************
@@ -826,8 +922,7 @@ void remoteAction(unsigned int irCode, IRTranslator * irTranslatorGeneric) {
     }
   }
 
-  // Fallback für Funktionen welche eine eigene Taste auf der Fernbedienung haben.
-  // Im Menue diesen Fallback jedoch verhindern.
+  // Fallback stellen fuer Funktionen welche eine eigene Taste auf der Fernbedienung haben.
   if ((irCode != REMOTE_BUTTON_TIME_H_PLUS)  &&
       (irCode != REMOTE_BUTTON_TIME_M_PLUS)  &&
       (irCode != REMOTE_BUTTON_TIME_H_MINUS) &&
@@ -870,18 +965,19 @@ void remoteAction(unsigned int irCode, IRTranslator * irTranslatorGeneric) {
 }
 
 /******************************************************************************
-   "Mode" button pressed.
+   "Mode" pressed.
 ******************************************************************************/
 
 void modePressed() {
   needsUpdateFromRtc = true;
+
   // Displaytreiber einschalten, wenn BLANK verlassen wird
   if (mode == STD_MODE_BLANK) {
     DEBUG_PRINTLN(F("LED-Driver: WakeUp"));
     ledDriver.wakeUp();
   }
+
   switch (mode) {
-    // Durch Drücken der MODE-Taste den Nachtmodus verlassen
     case STD_MODE_NIGHT:
       setDisplayToToggle();
       break;
@@ -895,7 +991,20 @@ void modePressed() {
     mode++;
   }
 
-  // End of menu. Return to time.
+#ifdef USE_STD_MODE_ALARM
+  // Alarm einstellen.
+  if (mode == STD_MODE_ALARM) {
+    alarm.setShowAlarmTimeTimer(settings.getJumpToNormalTimeout());
+  }
+
+  // Alarm abschalten wenn aktiv.
+  if (alarm.isActive()) {
+    alarm.deactivate();
+    setMode(STD_MODE_NORMAL);
+  }
+#endif
+
+  // Ende. Zurueck zur Zeit.
   if ((mode == STD_MODE_COUNT) || (mode == EXT_MODE_COUNT)) {
     setMode(STD_MODE_NORMAL);
   }
@@ -941,7 +1050,7 @@ void modePressed() {
 }
 
 /******************************************************************************
-   "H+" button pressed.
+   "H+" pressed.
 ******************************************************************************/
 
 void hourPlusPressed() {
@@ -964,6 +1073,12 @@ void hourPlusPressed() {
     case EXT_MODE_DAYSET:
       rtc.incDate();
       rtc.writeTime();
+      break;
+#endif
+#ifdef USE_STD_MODE_ALARM
+    case STD_MODE_ALARM:
+      alarm.incHours();
+      alarm.setShowAlarmTimeTimer(settings.getJumpToNormalTimeout());
       break;
 #endif
     case STD_MODE_BRIGHTNESS:
@@ -1045,7 +1160,7 @@ void hourPlusPressed() {
 }
 
 /******************************************************************************
-   "M+" button pressed.
+   "M+" pressed.
 ******************************************************************************/
 
 void minutePlusPressed() {
@@ -1068,6 +1183,12 @@ void minutePlusPressed() {
     case EXT_MODE_DAYSET:
       rtc.incDate(-1);
       rtc.writeTime();
+      break;
+#endif
+#ifdef USE_STD_MODE_ALARM
+    case STD_MODE_ALARM:
+      alarm.incFiveMinutes();
+      alarm.setShowAlarmTimeTimer(settings.getJumpToNormalTimeout());
       break;
 #endif
     case STD_MODE_BRIGHTNESS:
@@ -1308,8 +1429,30 @@ void factoryReset() {
 }
 
 /******************************************************************************
-   Set time from NTP-Server.
+   WiFi und NTP.
 ******************************************************************************/
+
+// Mit WiFi verbinden und NTP einrichten. Timeout ist 1 Minute.
+void initWiFi() {
+  DEBUG_PRINT("Connecting to ");
+  DEBUG_PRINTLN(ssid);
+  int i = 0;
+  WiFi.begin(ssid, pass);
+  WiFi.hostname("QLOCKFOUR_NodeMCU");
+  while ((WiFi.status() != WL_CONNECTED) && (i < 60)) {
+    delay(1000);
+    i++;
+  }
+  if (WiFi.status() != WL_CONNECTED) DEBUG_PRINTLN("Error connecting to WiFi.");
+  else {
+    DEBUG_PRINTLN("WiFi connected.");
+    DEBUG_PRINT("IP address: ");
+    DEBUG_PRINTLN(WiFi.localIP());
+    DEBUG_PRINT("Starting UDP on Port ");
+    udp.begin(localPort);
+    DEBUG_PRINTLN(udp.localPort());
+  }
+}
 
 boolean setTimeFromNtp(const char* ntpServerName) {
   WiFi.hostByName(ntpServerName, timeServerIP);
@@ -1344,10 +1487,6 @@ boolean setTimeFromNtp(const char* ntpServerName) {
   }
 }
 
-/******************************************************************************
-   Send an NTP request to the time server at the given address.
-******************************************************************************/
-
 unsigned long sendNTPpacket(IPAddress & address)
 {
   DEBUG_PRINTLN("sending NTP packet...");
@@ -1372,29 +1511,8 @@ unsigned long sendNTPpacket(IPAddress & address)
 }
 
 /******************************************************************************
-   WiFi, NTP und Web-Server.
+   Web-Server.
 ******************************************************************************/
-
-// Mit WiFi verbinden und NTP einrichten. Timeout ist 1 Minute.
-void initWiFi() {
-  DEBUG_PRINT("Connecting to ");
-  DEBUG_PRINTLN(ssid);
-  int i = 0;
-  WiFi.begin(ssid, pass);
-  while ((WiFi.status() != WL_CONNECTED) && (i < 60)) {
-    delay(1000);
-    i++;
-  }
-  if (WiFi.status() != WL_CONNECTED) DEBUG_PRINTLN("Error connecting to WiFi.");
-  else {
-    DEBUG_PRINTLN("WiFi connected.");
-    DEBUG_PRINT("IP address: ");
-    DEBUG_PRINTLN(WiFi.localIP());
-    DEBUG_PRINT("Starting UDP on Port ");
-    udp.begin(localPort);
-    DEBUG_PRINTLN(udp.localPort());
-  }
-}
 
 void setupWebServer() {
   if (MDNS.begin("esp8266")) DEBUG_PRINTLN("MDNS responder started.");
@@ -1421,11 +1539,13 @@ void handleRoot() {
   message += "<button onclick=\"window.location.href='/handle_BUTTON_TIME'\">Time</button><br><br>";
   message += "<button onclick=\"window.location.href='/handle_BUTTON_MODE'\">Mode</button>&nbsp;";
   message += "<button onclick=\"window.location.href='/handle_BUTTON_EXTMODE'\">Ext_Mode</button><br><br>";
-  message += "<button onclick=\"window.location.href='/handle_BUTTON_HOUR_PLUS'\">Hour +</button>&nbsp;";
-  message += "<button onclick=\"window.location.href='/handle_BUTTON_MINUTE_PLUS'\">Minute +</button><br><br><br>";
+  message += "<button onclick=\"window.location.href='/handle_BUTTON_MINUTE_PLUS'\">Minute +</button>&nbsp;";
+  message += "<button onclick=\"window.location.href='/handle_BUTTON_HOUR_PLUS'\">Hour +</button><br><br><br>";
   message += "<font size=2>Next NTP-Sync in ";
   message += nextNtpSync;
-  message += " Minutes.";
+  message += " Minutes.<br>";
+  message += "Firmware: ";
+  message += FIRMWARE_VERSION;
   message += "</center></font></font></body></html>";
   server.send(200, "text/html", message);
 }

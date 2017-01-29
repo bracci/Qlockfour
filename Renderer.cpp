@@ -275,7 +275,7 @@ void Renderer::setMinutes(char hours, byte minutes, byte language, word matrix[1
     //
     // Schweiz: Berner-Deutsch
     //
-    case LANGUAGE_CH_X:
+    case LANGUAGE_CH_GS:
       if (minutes % 5) {
         CH_GSI;
       }
@@ -1042,7 +1042,7 @@ void Renderer::setHours(byte hours, boolean glatt, byte language, word matrix[16
     // Schweiz: Berner-Deutsch
     //
     case LANGUAGE_CH:
-    case LANGUAGE_CH_X:
+    case LANGUAGE_CH_GS:
       switch (hours) {
         case 0:
         case 12:
@@ -1479,7 +1479,7 @@ void Renderer::clearEntryWords(byte language, word matrix[16]) {
 #endif
 #ifdef ENABLE_LANGUAGE_CH
     case LANGUAGE_CH:
-    case LANGUAGE_CH_X:
+    case LANGUAGE_CH_GS:
       matrix[0] &= 0b0010000111111111; // ES ISCH weg
       break;
 #endif
@@ -1548,7 +1548,7 @@ void Renderer::activateAMPM(byte hours, byte language, word matrix[16]) {
 #endif
 #ifdef ENABLE_LANGUAGE_CH
     case LANGUAGE_CH:
-    case LANGUAGE_CH_X:
+    case LANGUAGE_CH_GS:
       if (hours < 12) {
         CH_AM;
       } else {
@@ -1695,5 +1695,19 @@ boolean Renderer::isNumber(char symbol) {
   else {
     return false;
   }
+}
+
+void Renderer::setPixelInScreenBuffer(byte x, byte y, word matrix[16]) {
+  matrix[y] |= 0b1000000000000000 >> x;
+}
+
+void Renderer::unsetPixelInScreenBuffer(byte x, byte y, word matrix[16]) {
+  matrix[y] = ~matrix[y];
+  matrix[y] |= 0b1000000000000000 >> x;
+  matrix[y] = ~matrix[y];
+}
+
+boolean Renderer::getPixelFromScreenBuffer(byte x, byte y, word matrix[16]) {
+  return (matrix[y] & (0b1000000000000000 >> x)) == (0b1000000000000000 >> x);
 }
 

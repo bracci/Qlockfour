@@ -15,8 +15,8 @@ class LDR {
     byte value();
 
   private:
-int myConstrain(int x, int a, int b);
-  
+
+    int myConstrain(int x, int a, int b);
     byte _pin;
     int _lastValue;
     byte _outputValue;

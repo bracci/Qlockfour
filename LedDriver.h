@@ -36,8 +36,6 @@ class LedDriver {
 
     virtual void clearData();
 
-    void setPixelInScreenBuffer(byte x, byte y, word matrix[16]);
-    boolean getPixelFromScreenBuffer(byte x, byte y, word matrix[16]);
     void resetWheelPos(void);
 
     void demoTransition();

@@ -9,7 +9,7 @@
 
 #define FADINGCOUNTERLOAD 100
 #define SLIDINGCOUNTERLOAD 5000
-#define MATRIXCOUNTERLOAD 12500
+#define MATRIXCOUNTERLOAD 10000
 #define FADINGDURATION 5
 #define NORMALCOUNTERLOAD 1000
 
@@ -283,7 +283,7 @@ void LedDriverNeoPixel::setLinesToWrite(byte linesToWrite) {
 void LedDriverNeoPixel::wakeUp() {
 }
 
-/**
+/*
    Das Display ausschalten.
 */
 void LedDriverNeoPixel::shutDown() {

@@ -11,7 +11,7 @@
   Sie gleicht die Zeit einmal am Tag per NTP mit einem Zeitserver im Internet ab. Auf der Web-Seite kann man die Uhr
   steuern, konfigurieren und Infos abrufen.
   Einher geht die Firmware mit dem BOARD_NODEMCU bestehend aus NodeMCU/ESP8266 und einem DS3231-RTC-Modul.
-  Informationen zum schnellen Aufbau liegen im Verzeichnis. Siehe _BOARD_NodeMCU.*
+  Informationen zum schnellen Aufbau liegen im Verzeichnis. Siehe _BOARD_NodeMCU.
   
   Ein Video gibt es hier: https://www.youtube.com/watch?v=X_I5B-dErzE&feature=youtu.be
   Die Firmware gibt es hier: https://github.com/ch570512/Qlockfour
@@ -30,6 +30,9 @@
   Sekunden: Anzeige der Sekunden. (USE_STD_MODE_SECONDS)
   Datum: Anzeige des aktuellen Tages und Monats. (USE_STD_MODE_DATE)
   Temperatur: Anzeige der gemessenen Temperatur. (USE_STD_MODE_TEMP)
+  Alarm: H+ und M+ druecken um den Alarm (in 5 Minuten-Schritten) fuer die naechsten 24 Stunden zu stellen. Der Alarm
+         schaltet sich nach Ablauf der Fallback-Time automatisch ein. Er wird durch Druecken der Mode-Taste deaktiviert.
+         (USE_STD_MODE_ALARM)
   Helligkeit: H+ und M+ druecken um die LEDs im manuellen Modus heller oder dunkler zu stellen.
               Wird nicht angezeigt, wenn die automatische Helligkeitsregelung eingeschaltet ist.
 
@@ -64,9 +67,8 @@
   UTC_OFFSET:
   LED_TEST_INTRO:      Laesst alle LEDs nach dem Start der Uhr fuer 3 Sekunden leuchten.
   NONE_TECHNICAL_ZERO: Zeigt die Null ohne den diagonalen Strich.
-  IR_LETTER_OFF:       Schaltet die LED hinter dem IR-Sensor dauerhaft ab. Das verbessert den IR-Empfang.
-                       Hier das K vor Uhr: letzte Zeile (matrix[9]), achter Buchstabe (0b1111111011111111).
   TEMP_OFFSET:         Gibt an, um wieviel Grad die gemessene Temperatur (+ oder -) korrigiert werden soll.
+  MAX_BUZZ_TIME:       Nach wie vielen Minuten soll sich der Alarm automatisch abstellen?
   
   BOARD_NODEMCU:       Bitte eine externe 5V Stromquelle verwenden da sonst evtl. der NodeMCU und/oder der USB-Port des
                        Computers wegen des hohen Stroms der LEDs durchbrennt. Dateien mit Informationen liegen im
@@ -110,7 +112,10 @@
                        A/V:   Helligkeit-
                        -/--:  Helligkeit+
                        0:     LDR ein/aus
-  REMOTE_HX1838:
+  REMOTE_HX1838:       Fernbedienung HX1838.
+
+  IR_LETTER_OFF_:      Schaltet die LED hinter dem IR-Sensor dauerhaft ab. Das verbessert den IR-Empfang.
+                       Hier das K vor Uhr: Zehnte Zeile, achter Buchstabe. Wir fangen mit 1 an zu zaehlen.
   
   LDR_MIN_PERCENT:     Minimale Helligkeit der LEDs in Prozent.
   LDR_MAX_PERCENT:     Maximale Helligkeit der LEDs in Prozent.
@@ -156,6 +161,9 @@
 // Show temperature.
 #define USE_STD_MODE_TEMP
 
+// Set an alarm
+#define USE_STD_MODE_ALARM
+
 /******************************************************************************
   Extended Menu
 ******************************************************************************/
@@ -200,17 +208,14 @@
 // Offset from GMT/UTC.
 #define UTC_OFFSET +1
 
-// Turn on all LEDs for 3s on power-up.
-#define LED_TEST_INTRO
-
 // None technical zero.
 //#define NONE_TECHNICAL_ZERO
 
-// Turn off the letter containing the IR-Sensor (here: 10, 8).
-//#define IR_LETTER_OFF matrix[9] &= 0b1111111011111111
-
 // Temperature-Sensor.
 #define TEMP_OFFSET 5
+
+// Alarm.
+#define MAX_BUZZ_TIME 5
 
 // Board.
 #define BOARD_NODEMCU
@@ -228,31 +233,36 @@
 //#define LED_LAYOUT_CLT2
 
 // IR-Remote.
+#define REMOTE_NO_REMOTE
 //#define REMOTE_SPARKFUN
 //#define REMOTE_MOONCANDLES
 //#define REMOTE_LUNARTEC
 //#define REMOTE_CLT2
 //#define REMOTE_APPLE
-#define REMOTE_PHILIPS
+//#define REMOTE_PHILIPS
 //#define REMOTE_HX1838
+
+// Turn off the LED behind the IR-Sensor.
+//#define IR_LETTER_OFF_X 8
+//#define IR_LETTER_OFF_Y 10
 
 // LDR.
 #define LDR_MIN_PERCENT 5
 #define LDR_MAX_PERCENT 100
 #define LDR_HYSTERESE 50
-#define LDR_CHECK_RATE 75
+#define LDR_CHECK_RATE 50
 
 // misc.
-#define FIRMWARE_VERSION "qffw_20170126"
+#define FIRMWARE_VERSION "qffw_20170129"
 
 /******************************************************************************
   Debug to serial console.
 ******************************************************************************/
 
-#define SERIAL_SPEED 57600    // Set speed for debuging console.
+#define SERIAL_SPEED 57600    // Set speed for serial console.
 //#define DEBUG               // Switch on debug.
 //#define DEBUG_TIME          // Shows the time every secound.
-#define DEBUG_MATRIX        // Renders the matrix to console - German front - Works best with Putty.
+//#define DEBUG_MATRIX        // Renders the matrix to console - German front - Works best with Putty.
 //#define DEBUG_SET_DEFAULTS  // Sets the EEPROM to defauls on every startup.
 
 #endif
