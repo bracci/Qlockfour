@@ -37,7 +37,7 @@
 #define CLT_EXTMODE        0xFFC837
 
 void IRTranslatorCLT::printSignature() {
-  DEBUG_PRINT(F("CLT, "));
+  DEBUG_PRINT(F("CLT"));
 }
 
 byte IRTranslatorCLT::buttonForCode(unsigned long code) {

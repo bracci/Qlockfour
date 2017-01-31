@@ -45,12 +45,6 @@ class Settings {
     byte getTransitionMode();
     void setTransitionMode(byte transitionMode);
 
-    boolean getDcfSignalIsInverted();
-    void setDcfSignalIsInverted(boolean dcfSignalIsInverted);
-
-    char getTimeShift();
-    void setTimeShift(char timeShift);
-
     byte getJumpToNormalTimeout();
     void setJumpToNormalTimeout(byte jumpToNormalTimeout);
 

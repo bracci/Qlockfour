@@ -1651,7 +1651,7 @@ void Renderer::setCorners(byte minutes, word matrix[16]) {
   byte b_minutes = minutes % 5;
   for (byte i = 0; i < b_minutes; i++) {
     byte j;
-      j = (1 - i + 4) % 4;
+    j = (1 - i + 4) % 4;
     matrix[j] |= 0b0000000000011111;
   }
 }
@@ -1705,6 +1705,7 @@ void Renderer::unsetPixelInScreenBuffer(byte x, byte y, word matrix[16]) {
   matrix[y] = ~matrix[y];
   matrix[y] |= 0b1000000000000000 >> x;
   matrix[y] = ~matrix[y];
+
 }
 
 boolean Renderer::getPixelFromScreenBuffer(byte x, byte y, word matrix[16]) {

@@ -35,7 +35,7 @@
 #define LUNBARTEC_BLAUROT_4 0xFFF00F
 
 void IRTranslatorLunartec::printSignature() {
-  DEBUG_PRINT(F("Lunartec NX6612-901, "));
+  DEBUG_PRINT(F("Lunartec NX6612-901"));
 }
 
 byte IRTranslatorLunartec::buttonForCode(unsigned long code) {

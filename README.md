@@ -1,21 +1,19 @@
 # QLOCKFOUR NodeMCU
 ### Eine Firmware der Selbstbau-QLOCKTWO.
 
-QLOCKFOUR NodeMCU ist eine Firmware fuer die Selbstbau-QLOCKTWO.
-
 Sie gleicht die Zeit einmal am Tag per NTP mit einem Zeitserver im Internet ab. Auf der Web-Seite kann man die Uhr steuern, konfigurieren und Infos abrufen. Updates sind OTA moeglich. Dazu im Arduino IDE den ESP als Port auswaehlen.
 
 Einher geht die Firmware mit dem BOARD_NODEMCU bestehend aus NodeMCU/ESP8266 und einem DS3231-RTC-Modul. Informationen zum schnellen Aufbau liegen im Verzeichnis. Siehe _BOARD_NodeMCU.
 
-Ein Video gibt es hier: https://www.youtube.com/watch?v=X_I5B-dErzE&feature=youtu.be
+Ein Video gibt es hier: https://www.youtube.com/watch?v=X_I5B-dErzE
+
 Die Firmware gibt es hier: https://github.com/ch570512/Qlockfour
 
-Je nach Schalter (USE_...) und Parameter (ABC_...) in der Konfiguration stehen verschiedene Funktionen der Uhr
-zur Verfuegung.
-  
-Generell blinkt das Display bei der Moeglichkeit eine Zeit einzustellen. Ausserdem wird der Vormittag durch AM, der
-Nachmittag durch PM in der originalen Front angezeigt. Bei Sprachen die AM und PM nicht enthalten, leuchtet der erste
-Buchstabe fuer AM, der zweite Buchstabe fuer PM.
+Der Thread zur Firmware: http://diskussion.christians-bastel-laden.de/viewtopic.php?f=23&t=2748
+
+Je nach Schalter (USE_...) und Parameter (ABC_...) in der Konfiguration "Configuration.h" stehen verschiedene Funktionen der Uhr zur Verfuegung.
+
+Generell blinkt das Display bei der Moeglichkeit eine Zeit einzustellen. Ausserdem wird der Vormittag durch AM, der Nachmittag durch PM in der originalen Front angezeigt. Bei Sprachen die AM und PM nicht enthalten, leuchtet der erste Buchstabe fuer AM, der zweite Buchstabe fuer PM.
 
 ### Standard Modi
 ```
@@ -24,15 +22,16 @@ Anzeige AM/PM: Zeigt an, ob es vormittags (AM) oder nachmittags (PM) ist. (USE_S
 Sekunden: Anzeige der Sekunden. (USE_STD_MODE_SECONDS)
 Datum: Anzeige des aktuellen Tages und Monats. (USE_STD_MODE_DATE)
 Temperatur: Anzeige der gemessenen Temperatur. (USE_STD_MODE_TEMP)
-Alarm: H+ und M+ druecken um den Alarm (in 5 Minuten-Schritten) fuer die naechsten 24 Stunden zu stellen. Der Alarm
-       schaltet sich nach Ablauf der Fallback-Time automatisch ein. Er wird durch Druecken der Mode-Taste deaktiviert.
-       (USE_STD_MODE_ALARM)
+Alarm: H+ und M+ druecken um den Alarm (in 5 Minuten-Schritten) fuer die naechsten 24 Stunden zu stellen. Der
+       Alarm schaltet sich nach Ablauf der Fallback-Time automatisch ein. Er wird durch Druecken der Mode-Taste
+       deaktiviert. (USE_STD_MODE_ALARM)
 Helligkeit: H+ und M+ druecken um die LEDs im manuellen Modus heller oder dunkler zu stellen.
             Wird nicht angezeigt, wenn die automatische Helligkeitsregelung eingeschaltet ist.
 ```
 ### Erweiterte Modi
 ```
-Titel MAIN: H+ und M+ druecken um direkt in die naechste oder vorhergehende Kategorie zu wechseln. (USE_EXT_MODE_TITLES)
+Titel MAIN: H+ und M+ druecken um direkt in die naechste oder vorhergehende Kategorie zu wechseln.
+            (USE_EXT_MODE_TITLES)
 Automatische Helligkeitsregelung ein/aus (A/M)
 Effekt beim Zeitwechsel (TR NO/FD/SD/MX): kein Effekt, Fading, Sliding, Matrix (nur mit Farb-LEDs)
 Farbe (C 0..18) oder Farbwechsel (CC 01/02): CC 01 siehe unten, CC 02 wechselt die Farbe im 5 Minutentakt.
@@ -41,16 +40,19 @@ Sprache (DE/CH/EN/...): Die passende Sprache zur benutzten Front waehlen.
 Ruecksprungverzoegerung (FB nn): Wie lange soll es dauern, bis z.B. aus der Sekundenanzeige wieder zurueck in die
                                  Zeitanzeige gewechselt wird. (0 = deaktiviert.)
 
-Titel TIME: H+ und M+ druecken um direkt in die naechste oder vorhergehende Kategorie zu wechseln. (USE_EXT_MODE_TITLES)
+Titel TIME: H+ und M+ druecken um direkt in die naechste oder vorhergehende Kategorie zu wechseln.
+            (USE_EXT_MODE_TITLES)
 "Es ist" anzeigen oder nicht (IT EN/DA) (USE_EXT_MODE_IT_IS)
 Zeit einstellen: H+ und M+ druecken um die Zeit zu stellen. Die Sekunden springen mit jedem Druck auf Null.
 Tag einstellen   (DD nn): H+ und M+ druecken um den aktuellen Tag einzustellen. (USE_EXT_MODE_DATE_MANUALLY)
 Monat einstellen (MM nn): H+ und M+ druecken um den aktuellen Monat einzustellen.
 Jahr einstellen  (YY nn): H+ und M+ druecken um das aktuelle Jahr einzustellen.
-Nachtauschaltung        (N OF): H+ und M+ druecken um die Ausschaltzeit des Displays einzustellen. (USE_EXT_MODE_NIGHT_OFF)
+Nachtauschaltung        (N OF): H+ und M+ druecken um die Ausschaltzeit des Displays einzustellen.
+                                (USE_EXT_MODE_NIGHT_OFF)
 Nachtwiedereinschaltung (N ON): H+ und M+ druecken um die Einschaltzeit des Displays einzustellen. Analog (N OFF).
 
-Titel TEST: H+ und M+ druecken um direkt in die naechste oder vorhergehende Kategorie zu wechseln. (USE_EXT_MODE_TITLES)
+Titel TEST: H+ und M+ druecken um direkt in die naechste oder vorhergehende Kategorie zu wechseln.
+            (USE_EXT_MODE_TITLES)
 LED-Test: Laesst einen senkrechten Streifen ueber das Display wandern. (USE_EXT_MODE_TEST)
 ```
 ### sonstige Schalter und Parameter
@@ -61,14 +63,13 @@ HOSTNAME:
 OTA_PASS:
 NTP_SERVER:
 UTC_OFFSET:
-LED_TEST_INTRO:      Laesst alle LEDs nach dem Start der Uhr fuer 3 Sekunden leuchten.
 NONE_TECHNICAL_ZERO: Zeigt die Null ohne den diagonalen Strich.
 TEMP_OFFSET:         Gibt an, um wieviel Grad die gemessene Temperatur (+ oder -) korrigiert werden soll.
 MAX_BUZZ_TIME:       Nach wie vielen Minuten soll sich der Alarm automatisch abstellen?
 
-BOARD_NODEMCU:       Bitte eine externe 5V Stromquelle verwenden da sonst evtl. der NodeMCU und/oder der USB-Port des
-                     Computers wegen des hohen Stroms der LEDs durchbrennt. Dateien mit Informationen liegen im
-                     Verzeichnis. Der Aufbau auf einer kleinen Lochrasterplatine ist relativ einfach moeglich.
+BOARD_NODEMCU:       Bitte eine externe 5V Stromquelle verwenden da sonst evtl. der NodeMCU und/oder der USB-Port
+                     des Computers wegen des hohen Stroms der LEDs durchbrennt. Dateien mit Informationen liegen
+                     im Verzeichnis. Der Aufbau auf einer kleinen Lochrasterplatine ist relativ einfach moeglich.
 ENABLE_SQW_LED:      Zeigt mit Hilfe der LED auf dem Board die Funktion der RTC an. Sie blinkt einmal pro Sekunde.
 
 LED_DRIVER_NEOPIXEL: WS2812B-RGB-LED-Streifen.
@@ -132,4 +133,4 @@ https://github.com/ch570512/LPD8806
 https://github.com/ch570512/LPD8806RGBW
 https://github.com/markszabo/IRremoteESP8266
 ```
-### Vielen Dank an alle, insbesondere an Christian, Manuel und Andreas, auf deren Arbeit, Zeit und Einfallsreichtum diese Version der Firmware aufbaut.
+#### Vielen Dank an alle, insbesondere an Christian, Manuel und Andreas, auf deren Arbeit, Zeit und Einfallsreichtum diese Version der Firmware aufbaut.

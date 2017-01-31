@@ -11,6 +11,7 @@
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
+#include <ArduinoOTA.h>
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
 #include <IRremoteESP8266.h>
@@ -40,7 +41,7 @@
 #include "Alarm.h"
 
 /******************************************************************************
-   Init
+   Init.
 ******************************************************************************/
 
 #ifdef LED_DRIVER_NEOPIXEL
@@ -185,8 +186,9 @@ void setup() {
 
 void loop() {
 
-  // HTTP-Anfragen entgegennehmen.
+  // HTTP- und OTA-Anfragen entgegennehmen.
   server.handleClient();
+  ArduinoOTA.handle();
 
   // LDR lesen und Helligkeit einstellen.
   if (settings.getUseLdr()) {
@@ -202,17 +204,16 @@ void loop() {
   }
 
   /******************************************************************************
-    Matrix neu rendern, jede Sekunde oder bei Bedarf.
+    Screenbuffer neu rendern, jede Sekunde oder bei Bedarf.
   ******************************************************************************/
 
   if (needsUpdateFromRtc) {
     needsUpdateFromRtc = false;
+
     // Alle 60 Sekunden ausführen.
     if (helperSeconds > 59) {
       rtc.readTime();
       helperSeconds = rtc.getSeconds();
-      // Versuchen mit WiFi zu verbinden wenn nicht schon verbunden.
-      if (WiFi.status() != WL_CONNECTED) initWiFi();
       // Alle 23 Stunden die Zeit vom NTP-Server holen.
       if ((nextNtpSync <= 0) && (WiFi.status() == WL_CONNECTED)) {
         if (setTimeFromNtp(ntpServerName)) nextNtpSync = 1380;
@@ -314,7 +315,7 @@ void loop() {
           }
 #endif
           renderer.activateAlarmLed(matrix); // Alarm-LED
-          DEBUG_PRINT(rtc.getHours() + settings.getTimeShift());
+          DEBUG_PRINT(rtc.getHours());
           DEBUG_PRINT(F(":"));
           DEBUG_PRINT(rtc.getMinutes());
           DEBUG_PRINT(F(":"));
@@ -717,20 +718,20 @@ void loop() {
 #endif
 
     /******************************************************************************
-       Matrix gerendert.
+       Matrix in den Screenbuffer gerendert.
     ******************************************************************************/
 
 #ifdef DEBUG_MATRIX
-    // Matrix auf der Konsole ausgeben.
-    debug_matrix(matrix);
+    // Screenbuffer auf der Konsole ausgeben.
+    debugScreenBuffer(matrix);
 #endif
 
-    // Die neu erstellte Matrix auf das Display schreiben.
+    // Den neu erstellten Screenbuffer auf das Display schreiben.
     ledDriver.writeScreenBufferToMatrix(matrix, true, settings.getColor());
   }
 
   /******************************************************************************
-     misc in loop()
+     Sonstiges in loop()
   ******************************************************************************/
 
 #ifndef REMOTE_NO_REMOTE
@@ -790,6 +791,7 @@ void loop() {
   if ((mode != STD_MODE_BLANK) && (mode != STD_MODE_NIGHT)) {
     ledDriver.writeScreenBufferToMatrix(matrix, false, settings.getColor());
   }
+
 }
 
 /******************************************************************************
@@ -797,7 +799,7 @@ void loop() {
 ******************************************************************************/
 
 /******************************************************************************
-   Remote button pressed.
+   Taste auf der Fernbedienung gedrueckt.
 ******************************************************************************/
 
 void remoteAction(unsigned int irCode, IRTranslator * irTranslatorGeneric) {
@@ -922,7 +924,7 @@ void remoteAction(unsigned int irCode, IRTranslator * irTranslatorGeneric) {
     }
   }
 
-  // Fallback stellen fuer Funktionen welche eine eigene Taste auf der Fernbedienung haben.
+  // Ruecksprung stellen fuer Funktionen welche eine eigene Taste auf der Fernbedienung haben.
   if ((irCode != REMOTE_BUTTON_TIME_H_PLUS)  &&
       (irCode != REMOTE_BUTTON_TIME_M_PLUS)  &&
       (irCode != REMOTE_BUTTON_TIME_H_MINUS) &&
@@ -965,7 +967,7 @@ void remoteAction(unsigned int irCode, IRTranslator * irTranslatorGeneric) {
 }
 
 /******************************************************************************
-   "Mode" pressed.
+   "Mode" gedrueckt.
 ******************************************************************************/
 
 void modePressed() {
@@ -1050,7 +1052,7 @@ void modePressed() {
 }
 
 /******************************************************************************
-   "H+" pressed.
+   "H+" gedrueckt.
 ******************************************************************************/
 
 void hourPlusPressed() {
@@ -1160,7 +1162,7 @@ void hourPlusPressed() {
 }
 
 /******************************************************************************
-   "M+" pressed.
+   "M+" gedrueckt.
 ******************************************************************************/
 
 void minutePlusPressed() {
@@ -1269,7 +1271,7 @@ void minutePlusPressed() {
 }
 
 /******************************************************************************
-   Interrupt from PIN_SQW_SIGNAL.
+   Auf Interrupt von PIN_SQW_SIGNAL reagieren.
 ******************************************************************************/
 
 void updateFromRtc() {
@@ -1283,7 +1285,7 @@ void updateFromRtc() {
 }
 
 /******************************************************************************
-   Display on and off.
+   Display ein- und ausschalten.
 ******************************************************************************/
 
 void setDisplayToBlank() {
@@ -1307,7 +1309,7 @@ void setDisplayToToggle() {
 }
 
 /******************************************************************************
-   Set brightness of display.
+   Helligkeit einstellen.
 ******************************************************************************/
 
 void setDisplayBrighter() {
@@ -1337,7 +1339,7 @@ void setDisplayBrightness(byte brightness) {
 }
 
 /******************************************************************************
-   Timeout to switch back to time.
+   Ruecksprung zur Zeitanzeige.
 ******************************************************************************/
 
 void enableFallBackCounter(byte timeoutSec) {
@@ -1362,7 +1364,7 @@ void updateFallBackCounter() {
 }
 
 /******************************************************************************
-   Set time.
+   Zeit stellen.
 ******************************************************************************/
 
 void incDecMinutes(boolean inc) {
@@ -1397,29 +1399,29 @@ void resetSeconds() {
 }
 
 /******************************************************************************
-   Set mode.
+   Modus stellen.
 ******************************************************************************/
 
-void setMode(Mode a_mode) {
-  mode = a_mode;
+void setMode(Mode _mode) {
+  mode = _mode;
   lastMode = mode;
 }
 
 /******************************************************************************
-   isCurrentTimeInNightRange.
+   Pruefen ob aktuelle Zeit in Nachtabschaltung.
 ******************************************************************************/
 
 bool isCurrentTimeInNightRange() {
   return (((settings.getNightModeTime(false)->getMinutesOfDay(0) < settings.getNightModeTime(true)->getMinutesOfDay(0)) &&
            ((rtc.getMinutesOfDay(0) > settings.getNightModeTime(false)->getMinutesOfDay(0)) &&
-            (rtc.getMinutesOfDay(0) < settings.getNightModeTime(true)->getMinutesOfDay(0)))) ||
+            (rtc.getMinutesOfDay(0) < settings.getNightModeTime(true) ->getMinutesOfDay(0)))) ||
           ((settings.getNightModeTime(false)->getMinutesOfDay(0) > settings.getNightModeTime(true)->getMinutesOfDay(0)) &&
            ((rtc.getMinutesOfDay(0) > settings.getNightModeTime(false)->getMinutesOfDay(0)) ||
-            (rtc.getMinutesOfDay(0) < settings.getNightModeTime(true)->getMinutesOfDay(0)))));
+            (rtc.getMinutesOfDay(0) < settings.getNightModeTime(true) ->getMinutesOfDay(0)))));
 }
 
 /******************************************************************************
-   Set EEPROM to defaults.
+   EEPROM mit Defaultwerten beschreiben.
 ******************************************************************************/
 
 void factoryReset() {
@@ -1429,16 +1431,16 @@ void factoryReset() {
 }
 
 /******************************************************************************
-   WiFi und NTP.
+   WiFi, NTP und OTA.
 ******************************************************************************/
 
-// Mit WiFi verbinden und NTP einrichten. Timeout ist 1 Minute.
 void initWiFi() {
   DEBUG_PRINT("Connecting to ");
   DEBUG_PRINTLN(ssid);
   int i = 0;
+  WiFi.mode(WIFI_STA);
+  WiFi.hostname(HOSTNAME);
   WiFi.begin(ssid, pass);
-  WiFi.hostname("QLOCKFOUR_NodeMCU");
   while ((WiFi.status() != WL_CONNECTED) && (i < 60)) {
     delay(1000);
     i++;
@@ -1448,9 +1450,14 @@ void initWiFi() {
     DEBUG_PRINTLN("WiFi connected.");
     DEBUG_PRINT("IP address: ");
     DEBUG_PRINTLN(WiFi.localIP());
+
     DEBUG_PRINT("Starting UDP on Port ");
     udp.begin(localPort);
     DEBUG_PRINTLN(udp.localPort());
+
+    DEBUG_PRINT("Starting Arduino-OTA service.");
+    ArduinoOTA.setPassword((const char *)OTA_PASS);
+    ArduinoOTA.begin();
   }
 }
 
@@ -1482,29 +1489,25 @@ boolean setTimeFromNtp(const char* ntpServerName) {
     DEBUG_PRINTLN("Time written to RTC.");
     return true;
   } else {
-    DEBUG_PRINT("Sorry, no packet received.");
+    DEBUG_PRINTLN("Sorry, no packet received.");
     return false;
   }
 }
 
-unsigned long sendNTPpacket(IPAddress & address)
-{
+unsigned long sendNTPpacket(IPAddress & address) {
   DEBUG_PRINTLN("sending NTP packet...");
   // set all bytes in the buffer to 0
   memset(packetBuffer, 0, NTP_PACKET_SIZE);
   // Initialize values needed to form NTP request
-  // (see URL above for details on the packets)
-  packetBuffer[0] = 0b11100011;   // LI, Version, Mode
-  packetBuffer[1] = 0;     // Stratum, or type of clock
-  packetBuffer[2] = 6;     // Polling Interval
-  packetBuffer[3] = 0xEC;  // Peer Clock Precision
+  packetBuffer[0] = 0b11100011; // LI, Version, Mode
+  packetBuffer[1] = 0; // Stratum, or type of clock
+  packetBuffer[2] = 6; // Polling Interval
+  packetBuffer[3] = 0xEC; // Peer Clock Precision
   // 8 bytes of zero for Root Delay & Root Dispersion
   packetBuffer[12]  = 49;
   packetBuffer[13]  = 0x4E;
   packetBuffer[14]  = 49;
   packetBuffer[15]  = 52;
-  // all NTP fields have been given values, now
-  // you can send a packet requesting a timestamp:
   udp.beginPacket(address, 123); //NTP requests are to port 123
   udp.write(packetBuffer, NTP_PACKET_SIZE);
   udp.endPacket();
@@ -1514,33 +1517,41 @@ unsigned long sendNTPpacket(IPAddress & address)
    Web-Server.
 ******************************************************************************/
 
+// Setup des Web-Servers.
 void setupWebServer() {
-  if (MDNS.begin("esp8266")) DEBUG_PRINTLN("MDNS responder started.");
+  if (MDNS.begin(HOSTNAME)) DEBUG_PRINTLN("MDNS responder started.");
   server.onNotFound(handleNotFound);
   server.on("/", handleRoot);
-  server.on ( "/handle_TOGGLEBLANK", handle_TOGGLEBLANK );
-  server.on ( "/handle_BUTTON_TIME", handle_BUTTON_TIME );
-  server.on ( "/handle_BUTTON_MODE", handle_BUTTON_MODE );
-  server.on ( "/handle_BUTTON_EXTMODE", handle_BUTTON_EXTMODE );
-  server.on ( "/handle_BUTTON_HOUR_PLUS", handle_BUTTON_HOUR_PLUS );
-  server.on ( "/handle_BUTTON_MINUTE_PLUS", handle_BUTTON_MINUTE_PLUS );
+  server.on("/handle_TOGGLEBLANK", handle_TOGGLEBLANK);
+  server.on("/handle_BUTTON_TIME", handle_BUTTON_TIME);
+  server.on("/handle_BUTTON_MODE", handle_BUTTON_MODE);
+  server.on("/handle_BUTTON_EXTMODE", handle_BUTTON_EXTMODE);
+  server.on("/handle_BUTTON_HOUR_PLUS", handle_BUTTON_HOUR_PLUS);
+  server.on("/handle_BUTTON_MINUTE_PLUS", handle_BUTTON_MINUTE_PLUS);
   server.begin();
 }
 
+// Web-Seiten mit den Funktionen.
 void handleNotFound() {
-  String message = "File Not Found.";
+  String message = "404 - File Not Found.";
   server.send(404, "text/plain", message);
 }
 
 void handleRoot() {
-  String message = "<!doctype html><html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\"></head><body><font face=\"Arial\"><center>";
-  message += "<h2>QLOCKFOUR NodeMCU</h2>";
+  String message = "<!doctype html><html><head>";
+  message += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">";
+  message += "<meta http-equiv=\"refresh\" content=\"60; URL=/\" />";
+  message += "</head><body><font face=\"Arial\"><center>";
+  message += "<h2>";
+  message += HOSTNAME;
+  message += "</h2>";
   message += "<button onclick=\"window.location.href='/handle_TOGGLEBLANK'\">Clock on/off</button>&nbsp;";
   message += "<button onclick=\"window.location.href='/handle_BUTTON_TIME'\">Time</button><br><br>";
   message += "<button onclick=\"window.location.href='/handle_BUTTON_MODE'\">Mode</button>&nbsp;";
   message += "<button onclick=\"window.location.href='/handle_BUTTON_EXTMODE'\">Ext_Mode</button><br><br>";
   message += "<button onclick=\"window.location.href='/handle_BUTTON_MINUTE_PLUS'\">Minute +</button>&nbsp;";
-  message += "<button onclick=\"window.location.href='/handle_BUTTON_HOUR_PLUS'\">Hour +</button><br><br><br>";
+  message += "<button onclick=\"window.location.href='/handle_BUTTON_HOUR_PLUS'\">Hour +</button><br><br>";
+  message += getScreenBufferString(matrix);
   message += "<font size=2>Next NTP-Sync in ";
   message += nextNtpSync;
   message += " Minutes.<br>";
@@ -1552,25 +1563,25 @@ void handleRoot() {
 
 void handle_TOGGLEBLANK() {
   String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
-  server.send ( 200, "text/html", message );
+  server.send(200, "text/html", message);
   setDisplayToToggle();
 }
 
 void handle_BUTTON_TIME() {
   String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
-  server.send ( 200, "text/html", message );
+  server.send(200, "text/html", message);
   setMode(STD_MODE_NORMAL);
 }
 
 void handle_BUTTON_MODE() {
   String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
-  server.send ( 200, "text/html", message );
+  server.send(200, "text/html", message);
   modePressed();
 }
 
 void handle_BUTTON_EXTMODE() {
   String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
-  server.send ( 200, "text/html", message );
+  server.send(200, "text/html", message);
   if (mode < EXT_MODE_START) {
     setMode(EXT_MODE_START);
   } else {
@@ -1580,38 +1591,71 @@ void handle_BUTTON_EXTMODE() {
 
 void handle_BUTTON_HOUR_PLUS() {
   String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
-  server.send ( 200, "text/html", message );
+  server.send(200, "text/html", message);
   hourPlusPressed();
 }
 
 void handle_BUTTON_MINUTE_PLUS() {
   String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
-  server.send ( 200, "text/html", message );
+  server.send(200, "text/html", message);
   minutePlusPressed();
 }
 
+String getScreenBufferString(word ScreenBuffer[]) {
+  const char buchstabensalat[][17] = {
+    {"ESKISTAFUNF2"},
+    {"ZEHNZWANZIG1"},
+    {"DREIVIERTEL4"},
+    {"VORFUNKNACH3"},
+    {"HALBAELFUNFA"},
+    {"EINSXAMZWEI_"},
+    {"DREIPMJVIER_"},
+    {"SECHSNLACHT_"},
+    {"SIEBENZWOLF_"},
+    {"ZEHNEUNKUHR_"}
+  };
+  String ScreenBufferString = "<font face=\"Monospace\">";
+  ScreenBufferString += "-----------<br>";
+  for (byte zeile = 0; zeile < 10; zeile++) {
+    word leds = ScreenBuffer[zeile];
+    char spalte[16];
+    for (int i = 15; i >= 0; i--) {
+      spalte[i] = ((leds & 1) ? buchstabensalat[zeile][i] : '_');
+      leds = leds >> 1;
+    }
+    ScreenBufferString += "|";
+    for (byte i = 0; i < 11; i++) {
+      ScreenBufferString += spalte[i];
+    }
+    ScreenBufferString += "|<br>";
+  }
+  ScreenBufferString += "-----------<br><br></font>";
+  ScreenBufferString.replace("_", "&nbsp;");
+  return ScreenBufferString;
+}
+
 /******************************************************************************
-   DEBUG: Render the Matrix to console.
+   DEBUG: Screenbuffer in der Konsole ausgeben.
 ******************************************************************************/
 
 #ifdef DEBUG_MATRIX
-void debug_matrix(word debugMatrix[]) {
-  const char buchstabensalat[][12] = {
-    {'E', 'S', 'K', 'I', 'S', 'T', 'A', 'F', 'U', 'N', 'F', '2'},
-    {'Z', 'E', 'H', 'N', 'Z', 'W', 'A', 'N', 'Z', 'I', 'G', '1'},
-    {'D', 'R', 'E', 'I', 'V', 'I', 'E', 'R', 'T', 'E', 'L', '4'},
-    {'V', 'O', 'R', 'F', 'U', 'N', 'K', 'N', 'A', 'C', 'H', '3'},
-    {'H', 'A', 'L', 'B', 'A', 'E', 'L', 'F', 'U', 'N', 'F', 'A'},
-    {'E', 'I', 'N', 'S', 'X', 'A', 'M', 'Z', 'W', 'E', 'I', '_'},
-    {'D', 'R', 'E', 'I', 'P', 'M', 'J', 'V', 'I', 'E', 'R', '_'},
-    {'S', 'E', 'C', 'H', 'S', 'N', 'L', 'A', 'C', 'H', 'T', '_'},
-    {'S', 'I', 'E', 'B', 'E', 'N', 'Z', 'W', 'O', 'L', 'F', '_'},
-    {'Z', 'E', 'H', 'N', 'E', 'U', 'N', 'K', 'U', 'H', 'R', '_'}
+void debugScreenBuffer(word ScreenBuffer[]) {
+  const char buchstabensalat[][17] = {
+    {"ESKISTAFUNF2"},
+    {"ZEHNZWANZIG1"},
+    {"DREIVIERTEL4"},
+    {"VORFUNKNACH3"},
+    {"HALBAELFUNFA"},
+    {"EINSXAMZWEI_"},
+    {"DREIPMJVIER_"},
+    {"SECHSNLACHT_"},
+    {"SIEBENZWOLF_"},
+    {"ZEHNEUNKUHR_"}
   };
-  Serial.println(F("\033[0;0H")); // Set cursor to 0, 0 position in console.
-  Serial.println(F(" -----------"));
+  Serial.println("\033[0;0H"); // Set cursor to 0, 0 position in console.
+  Serial.println(" -----------");
   for (byte zeile = 0; zeile < 10; zeile++) {
-    word leds = debugMatrix[zeile];
+    word leds = ScreenBuffer[zeile];
     char spalte[16];
     for (int i = 15; i >= 0; i--) {
       spalte[i] = ((leds & 1) ? buchstabensalat[zeile][i] : ' ');
@@ -1624,7 +1668,7 @@ void debug_matrix(word debugMatrix[]) {
     Serial.print('|');
     Serial.println(spalte[11]); // Corner LEDs
   }
-  Serial.println(F(" -----------"));
+  Serial.println(" -----------");
 }
 #endif
 

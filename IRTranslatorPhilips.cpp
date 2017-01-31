@@ -26,7 +26,7 @@
 #define PHILIPS_00         2021931990
 
 void IRTranslatorPhilips::printSignature() {
-  DEBUG_PRINT(F("Philips, "));
+  DEBUG_PRINT(F("Philips SRP1 101/10 - 0815"));
 }
 
 byte IRTranslatorPhilips::buttonForCode(unsigned long code) {

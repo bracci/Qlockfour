@@ -29,7 +29,7 @@
 #define HX1838_200        16756815
 
 void IRTranslatorHX1838::printSignature() {
-  DEBUG_PRINT(F("HX1838, "));
+  DEBUG_PRINT(F("HX1838"));
 }
 
 byte IRTranslatorHX1838::buttonForCode(unsigned long code) {
