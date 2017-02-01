@@ -24,32 +24,26 @@ class Settings {
     byte getLanguage();
     void setLanguage(byte language);
 
-    byte getEvent();
-    void setEvent(byte event);
-
-    boolean getRenderCornersCw();
-    void setRenderCornersCw(boolean cw);
-
     boolean getUseLdr();
     void setUseLdr(boolean useLdr);
 
     byte getBrightness();
     void setBrightness(byte brightness);
 
+    byte getTransitionMode();
+    void setTransitionMode(byte transitionMode);
+
     void setColor(eColors color);
     eColors getColor();
 
-    boolean getEnableAlarm();
-    void setEnableAlarm(boolean enableAlarm);
-
-    byte getTransitionMode();
-    void setTransitionMode(byte transitionMode);
+    byte getColorChangeRate();
+    void setColorChangeRate(byte rate);
 
     byte getJumpToNormalTimeout();
     void setJumpToNormalTimeout(byte jumpToNormalTimeout);
 
-    byte getColorChangeRate();
-    void setColorChangeRate(byte rate);
+    boolean getEsIst();
+    void toggleEsIst();
 
     void loadFromEEPROM();
     void saveToEEPROM();
@@ -57,9 +51,6 @@ class Settings {
     void resetToDefault();
 
     TimeStamp* getNightModeTime(bool onTime);
-
-    boolean getEsIst();
-    void toggleEsIst();
 
   private:
     byte _language;
