@@ -14,8 +14,8 @@
 #include <ArduinoOTA.h>
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
+#include <ctime>
 #include <IRremoteESP8266.h>
-#include "pins_arduino.h"
 #include "Configuration.h"
 #include "Debug.h"
 #include "Boards.h"
@@ -105,7 +105,6 @@ byte fallBackCounter = 0;
 
 char ssid[] = WLAN_SSID;
 char pass[] = WLAN_PASS;
-unsigned int localPort = 2390;
 IPAddress timeServerIP;
 const char* ntpServerName = NTP_SERVER;
 const int NTP_PACKET_SIZE = 48;
@@ -1451,64 +1450,81 @@ void initWiFi() {
     DEBUG_PRINT("IP address: ");
     DEBUG_PRINTLN(WiFi.localIP());
 
-    DEBUG_PRINT("Starting UDP on Port ");
-    udp.begin(localPort);
-    DEBUG_PRINTLN(udp.localPort());
+    DEBUG_PRINT("Starting UDP on Port 2390.");
+    udp.begin(2390);
 
-    DEBUG_PRINT("Starting Arduino-OTA service.");
-    ArduinoOTA.setPassword((const char *)OTA_PASS);
+    DEBUG_PRINTLN("Starting Arduino-OTA service.");
+    ArduinoOTA.setPassword((const char*)OTA_PASS);
     ArduinoOTA.begin();
   }
 }
 
 boolean setTimeFromNtp(const char* ntpServerName) {
-  WiFi.hostByName(ntpServerName, timeServerIP);
-  sendNTPpacket(timeServerIP); // send an NTP packet to a time server
-  delay(1000);
-  int cb = udp.parsePacket();
-  if (cb) {
-    DEBUG_PRINT("Packet received, length=");
-    DEBUG_PRINTLN(cb);
-    udp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer
-    unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
-    unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
-    unsigned long secsSince1900 = highWord << 16 | lowWord;
-    const unsigned long seventyYears = 2208988800UL;
-    unsigned long epoch = secsSince1900 - seventyYears;
-    DEBUG_PRINT("UTC time is ");
-    DEBUG_PRINT((epoch % 86400L) / 3600); // Stunde
-    DEBUG_PRINT(':');
-    DEBUG_PRINT((epoch % 3600) / 60); // Minute
-    DEBUG_PRINT(':');
-    DEBUG_PRINTLN(epoch % 60); // Sekunde
-    rtc.setHours(((epoch % 86400L) / 3600) + UTC_OFFSET);
-    rtc.setMinutes((epoch % 3600) / 60);
-    rtc.setSeconds(epoch % 60);
-    rtc.writeTime();
-    helperSeconds = rtc.getSeconds();
-    DEBUG_PRINTLN("Time written to RTC.");
-    return true;
-  } else {
-    DEBUG_PRINTLN("Sorry, no packet received.");
-    return false;
+  while (udp.parsePacket() > 0);
+  DEBUG_PRINTLN("Transmit NTP Request.");
+  WiFi.hostByName(NTP_SERVER, timeServerIP);
+  sendNTPpacket(timeServerIP);
+  uint32_t beginWait = millis();
+  while (millis() - beginWait < 1500) {
+    int size = udp.parsePacket();
+    if (size >= NTP_PACKET_SIZE) {
+      DEBUG_PRINTLN("Receive NTP Response.");
+      udp.read(packetBuffer, NTP_PACKET_SIZE);
+      
+      unsigned long secsSince1900;
+      secsSince1900 =  (unsigned long)packetBuffer[40] << 24;
+      secsSince1900 |= (unsigned long)packetBuffer[41] << 16;
+      secsSince1900 |= (unsigned long)packetBuffer[42] << 8;
+      secsSince1900 |= (unsigned long)packetBuffer[43];
+      
+      time_t ntpTime = secsSince1900 - 2208988800UL + UTC_OFFSET * 3600;
+      struct tm *now = localtime(&ntpTime);
+      rtc.setHours    (now->tm_hour);
+      rtc.setMinutes  (now->tm_min);
+      rtc.setSeconds  (now->tm_sec);
+      rtc.setDate     (now->tm_mday);
+      rtc.setMonth    (now->tm_mon+1);
+      rtc.setYear     (now->tm_year-100);
+      rtc.setDayOfWeek(now->tm_wday);
+      rtc.writeTime();
+      
+      DEBUG_PRINT("NTP-time is ");
+      DEBUG_PRINT(now->tm_hour);
+      DEBUG_PRINT(':');
+      DEBUG_PRINT(now->tm_min);
+      DEBUG_PRINT(':');
+      DEBUG_PRINT(now->tm_sec);
+      DEBUG_PRINT(' ');
+      DEBUG_PRINT(now->tm_mday);
+      DEBUG_PRINT('.');
+      DEBUG_PRINT(now->tm_mon+1);
+      DEBUG_PRINT('.');
+      DEBUG_PRINT(now->tm_year-100);
+      DEBUG_PRINT(' ');
+      DEBUG_PRINT(now->tm_wday);
+      DEBUG_PRINT(' ');
+      DEBUG_PRINTLN(now->tm_isdst);
+      DEBUG_PRINTLN("Time written to RTC.");
+      
+      return true;
+    }
   }
+  DEBUG_PRINTLN("No NTP Response. :-(");
+  return false;
 }
 
-unsigned long sendNTPpacket(IPAddress & address) {
+unsigned long sendNTPpacket(IPAddress &address) {
   DEBUG_PRINTLN("sending NTP packet...");
-  // set all bytes in the buffer to 0
   memset(packetBuffer, 0, NTP_PACKET_SIZE);
-  // Initialize values needed to form NTP request
-  packetBuffer[0] = 0b11100011; // LI, Version, Mode
-  packetBuffer[1] = 0; // Stratum, or type of clock
-  packetBuffer[2] = 6; // Polling Interval
-  packetBuffer[3] = 0xEC; // Peer Clock Precision
-  // 8 bytes of zero for Root Delay & Root Dispersion
+  packetBuffer[0] = 0b11100011;
+  packetBuffer[1] = 0;
+  packetBuffer[2] = 6;
+  packetBuffer[3] = 0xEC;
   packetBuffer[12]  = 49;
   packetBuffer[13]  = 0x4E;
   packetBuffer[14]  = 49;
   packetBuffer[15]  = 52;
-  udp.beginPacket(address, 123); //NTP requests are to port 123
+  udp.beginPacket(address, 123);
   udp.write(packetBuffer, NTP_PACKET_SIZE);
   udp.endPacket();
 }

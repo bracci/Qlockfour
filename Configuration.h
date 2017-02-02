@@ -1,9 +1,6 @@
-/*
-   Configuration
-   Die Compiler-Einstellungen der Firmware an einer zentralen Stelle.
-
-   Siehe README.MD fuer weitere Informationen.
-*/
+/******************************************************************************
+   Configuration.h
+******************************************************************************/
 
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
@@ -122,7 +119,7 @@
 #define LDR_CHECK_RATE 50
 
 // misc.
-#define FIRMWARE_VERSION "qffw_20170131"
+#define FIRMWARE_VERSION "qffw_20170202"
 
 /******************************************************************************
   Debug to serial console.
