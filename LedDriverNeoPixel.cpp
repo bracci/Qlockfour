@@ -304,10 +304,10 @@ void LedDriverNeoPixel::clearData() {
    Einen X/Y-koordinierten Pixel in der Matrix setzen.
 */
 void LedDriverNeoPixel::_setPixel(byte x, byte y, uint32_t c) {
-#ifdef LED_LAYOUT_MOODLIGHT
+#ifdef LED_LAYOUT_WAAGERECHT
   _setPixel(x + (y * 11), c);
 #endif
-#ifdef LED_LAYOUT_CLT2
+#ifdef LED_LAYOUT_SENKRECHT
   _setPixel(y + (x * 10), c);
 #endif
 }
@@ -316,7 +316,7 @@ void LedDriverNeoPixel::_setPixel(byte x, byte y, uint32_t c) {
    Einen Pixel im Streifen setzten (die Eck-LEDs sind am Ende).
 */
 void LedDriverNeoPixel::_setPixel(byte num, uint32_t c) {
-#ifdef LED_LAYOUT_MOODLIGHT
+#ifdef LED_LAYOUT_WAAGERECHT
   if (num < 110) {
     if ((num / 11) % 2 == 0) {
       _strip->setPixelColor(num, c);
@@ -345,7 +345,7 @@ void LedDriverNeoPixel::_setPixel(byte num, uint32_t c) {
     }
   }
 #endif
-#ifdef LED_LAYOUT_CLT2
+#ifdef LED_LAYOUT_SENKRECHT
   byte ledNum;
   if (num < 110) {
     if ((num / 10) % 2 == 0) {

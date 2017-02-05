@@ -2,19 +2,21 @@
    QLOCKFOUR NodeMCU
    Eine Firmware der Selbstbau-QLOCKTWO.
 
-   @mc       NodeMCU/ESP8266
-   @created  22.01.2017
+   @mc      NodeMCU/ESP8266
+   @created 22.01.2017
+
+   Siehe README.MD fuer weitere Informationen.
 ******************************************************************************/
 
-#include <ESP8266WiFi.h>
-#include <WiFiUdp.h>
-#include <WiFiClient.h>
-#include <ESP8266WebServer.h>
-#include <ESP8266mDNS.h>
-#include <ArduinoOTA.h>
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
 #include <ctime>
+#include <WiFiUdp.h>
+#include <WiFiClient.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
+#include <ArduinoOTA.h>
 #include <IRremoteESP8266.h>
 #include "Configuration.h"
 #include "Debug.h"
@@ -138,7 +140,7 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(PIN_SQW_SIGNAL), updateFromRtc, FALLING);
   rtc.readTime();
   if ((rtc.getSeconds() >= 60) || (rtc.getMinutes() >= 60) || (rtc.getHours() >= 24) || (rtc.getYear() < 17)) {
-    rtc.set(11, 11, 1, 1, 1, 17);
+    rtc.set(11, 11, 1, 1, 1, 17, false);
     rtc.setSeconds(11);
   }
   rtc.writeTime();
@@ -160,10 +162,6 @@ void setup() {
   // IR-Empfaenger initialisieren.
   irrecv.enableIRIn();
 #endif
-
-  // LDR initialisieren.
-  pinMode(PIN_LDR, INPUT);
-  LDR ldr(PIN_LDR);
 
   // WiFi und WebServer initialisieren.
   initWiFi();
@@ -1436,21 +1434,35 @@ void factoryReset() {
 void initWiFi() {
   DEBUG_PRINT("Connecting to ");
   DEBUG_PRINTLN(ssid);
-  int i = 0;
   WiFi.mode(WIFI_STA);
   WiFi.hostname(HOSTNAME);
   WiFi.begin(ssid, pass);
-  while ((WiFi.status() != WL_CONNECTED) && (i < 60)) {
+  for (byte i=0; ((i<=15) && (WiFi.status() != WL_CONNECTED)); i++) {
     delay(1000);
-    i++;
+    DEBUG_PRINT(".");
   }
-  if (WiFi.status() != WL_CONNECTED) DEBUG_PRINTLN("Error connecting to WiFi.");
+  DEBUG_PRINTLN("");
+  
+  if (WiFi.status() != WL_CONNECTED) {
+    DEBUG_PRINTLN("Error connecting to WiFi.");
+    DEBUG_PRINTLN("");
+    digitalWrite(PIN_BUZZER, HIGH);
+    delay(1500);
+    digitalWrite(PIN_BUZZER, LOW);
+  }
   else {
     DEBUG_PRINTLN("WiFi connected.");
     DEBUG_PRINT("IP address: ");
     DEBUG_PRINTLN(WiFi.localIP());
+    DEBUG_PRINTLN("");
+    for (byte i = 0; i < 3; i++) {
+      digitalWrite(PIN_BUZZER, HIGH);
+      delay(100);
+      digitalWrite(PIN_BUZZER, LOW);
+      delay(100);
+    }
 
-    DEBUG_PRINT("Starting UDP on Port 2390.");
+    DEBUG_PRINTLN("Starting UDP on Port 2390.");
     udp.begin(2390);
 
     DEBUG_PRINTLN("Starting Arduino-OTA service.");
@@ -1468,27 +1480,32 @@ boolean setTimeFromNtp(const char* ntpServerName) {
   while (millis() - beginWait < 1500) {
     int size = udp.parsePacket();
     if (size >= NTP_PACKET_SIZE) {
-      DEBUG_PRINTLN("Receive NTP Response.");
+      DEBUG_PRINTLN("Received NTP Response.");
       udp.read(packetBuffer, NTP_PACKET_SIZE);
-      
+
       unsigned long secsSince1900;
       secsSince1900 =  (unsigned long)packetBuffer[40] << 24;
       secsSince1900 |= (unsigned long)packetBuffer[41] << 16;
       secsSince1900 |= (unsigned long)packetBuffer[42] << 8;
       secsSince1900 |= (unsigned long)packetBuffer[43];
-      
+
       time_t ntpTime = secsSince1900 - 2208988800UL + UTC_OFFSET * 3600;
       struct tm *now = localtime(&ntpTime);
+      if (now->tm_isdst) {
+        ntpTime += 3600;
+        now = localtime(&ntpTime);
+      }
       rtc.setHours    (now->tm_hour);
       rtc.setMinutes  (now->tm_min);
       rtc.setSeconds  (now->tm_sec);
       rtc.setDate     (now->tm_mday);
-      rtc.setMonth    (now->tm_mon+1);
-      rtc.setYear     (now->tm_year-100);
+      rtc.setMonth    (now->tm_mon + 1);
+      rtc.setYear     (now->tm_year - 100);
       rtc.setDayOfWeek(now->tm_wday);
+      rtc.setisDST    (now->tm_isdst);
       rtc.writeTime();
-      
-      DEBUG_PRINT("NTP-time is ");
+
+      DEBUG_PRINT("Local time from NTP is ");
       DEBUG_PRINT(now->tm_hour);
       DEBUG_PRINT(':');
       DEBUG_PRINT(now->tm_min);
@@ -1497,15 +1514,15 @@ boolean setTimeFromNtp(const char* ntpServerName) {
       DEBUG_PRINT(' ');
       DEBUG_PRINT(now->tm_mday);
       DEBUG_PRINT('.');
-      DEBUG_PRINT(now->tm_mon+1);
+      DEBUG_PRINT(now->tm_mon + 1);
       DEBUG_PRINT('.');
-      DEBUG_PRINT(now->tm_year-100);
+      DEBUG_PRINT(now->tm_year - 100);
       DEBUG_PRINT(' ');
       DEBUG_PRINT(now->tm_wday);
       DEBUG_PRINT(' ');
       DEBUG_PRINTLN(now->tm_isdst);
       DEBUG_PRINTLN("Time written to RTC.");
-      
+
       return true;
     }
   }

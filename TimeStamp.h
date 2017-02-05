@@ -9,7 +9,7 @@
 
 class TimeStamp {
   public:
-    TimeStamp(byte minutes, byte hours, byte date, byte dayOfWeek, byte month, byte year);
+    TimeStamp(byte minutes, byte hours, byte date, byte dayOfWeek, byte month, byte year, bool isDST);
 
     void incMinutes();
     void decMinutes();
@@ -30,6 +30,7 @@ class TimeStamp {
     byte getDayOfWeek();
     byte getMonth();
     byte getYear();
+    bool getisDST();
     unsigned long getMinutesOfCentury();
 
     void setMinutes(byte minutes);
@@ -38,8 +39,9 @@ class TimeStamp {
     void setDayOfWeek(byte dayOfWeek);
     void setMonth(byte month);
     void setYear(byte year);
+    void setisDST(bool isDST);
 
-    void set(byte minutes, byte hours, byte date, byte dayOfWeek, byte month, byte year);
+    void set(byte minutes, byte hours, byte date, byte dayOfWeek, byte month, byte year, bool isDST);
     void set(TimeStamp* timeStamp);
 
     char* asString();
@@ -56,6 +58,7 @@ class TimeStamp {
     byte _dayOfWeek;
     byte _month;
     byte _year;
+    bool _isDST;
 
     char _cDateTime[17];
 };

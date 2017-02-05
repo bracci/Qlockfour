@@ -8,7 +8,7 @@
 /*
    Konstruktor.
 */
-Alarm::Alarm(byte speakerPin) : TimeStamp(0, 1, 0, 0, 0, 0) {
+Alarm::Alarm(byte speakerPin) : TimeStamp(0, 1, 0, 0, 0, 0, false) {
   _speakerPin = speakerPin;
   pinMode(_speakerPin, OUTPUT);
   _isActive = false;

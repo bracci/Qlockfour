@@ -8,14 +8,14 @@
 #include "debug.h"
 
 #define SETTINGS_MAGIC_NUMBER 0x2A
-#define SETTINGS_VERSION 3
+#define SETTINGS_VERSION 4
 
 /*
     Konstruktor
 */
 Settings::Settings() {
-  _nightModeTime[0] = new TimeStamp(0, 0, 0, 0, 0, 0);
-  _nightModeTime[1] = new TimeStamp(0, 0, 0, 0, 0, 0);
+  _nightModeTime[0] = new TimeStamp(0, 0, 0, 0, 0, 0, false);
+  _nightModeTime[1] = new TimeStamp(0, 0, 0, 0, 0, 0, false);
   resetToDefault();
   loadFromEEPROM();
 }
@@ -30,10 +30,8 @@ void Settings::resetToDefault() {
   _transitionMode = TRANSITION_MODE_NORMAL;
   _color = color_white;
   _colorChangeRate = 0;
-  // um 3 Uhr Display abschalten (Minuten, Stunden, -, -, -, -)
-  _nightModeTime[0]->set(0, 3, 0, 0, 0, 0);
-  // um 4:30 Uhr Display wieder anschalten (Minuten, Stunden, -, -, -, -)
-  _nightModeTime[1]->set(30, 4, 0, 0, 0, 0);
+  _nightModeTime[0]->set(0, 3, 0, 0, 0, 0, false);
+  _nightModeTime[1]->set(30, 4, 0, 0, 0, 0, false);
   _jumpToNormalTimeout = 5;
   _esIst = true;
 }
@@ -121,8 +119,8 @@ void Settings::loadFromEEPROM() {
     _transitionMode = EEPROM.read(5);
     _color = (eColors)EEPROM.read(6);
     _colorChangeRate = EEPROM.read(7);
-    _nightModeTime[0]->set(EEPROM.read(8), EEPROM.read(9), 0, 0, 0, 0);
-    _nightModeTime[1]->set(EEPROM.read(10), EEPROM.read(11), 0, 0, 0, 0);
+    _nightModeTime[0]->set(EEPROM.read(8), EEPROM.read(9), 0, 0, 0, 0, false);
+    _nightModeTime[1]->set(EEPROM.read(10), EEPROM.read(11), 0, 0, 0, 0, false);
     _jumpToNormalTimeout = EEPROM.read(12);
     _esIst = EEPROM.read(14);
   }

@@ -9,7 +9,7 @@
 /*
    Initialisierung
 */
-MyRTC::MyRTC(int address, byte statusLedPin) : TimeStamp(0, 0, 0, 0, 0, 0) {
+MyRTC::MyRTC(int address, byte statusLedPin) : TimeStamp(0, 0, 0, 0, 0, 0, false) {
   _address = address;
   _statusLedPin = statusLedPin;
   pinMode(_statusLedPin, OUTPUT);
@@ -65,14 +65,9 @@ void MyRTC::readTime() {
     _date = 1;
     _month = 1;
     _year = 17;
+    _isDST = false;
     DEBUG_PRINTLN(F("RTC error. Set defaults."));
   }
-  DEBUG_PRINT(F("Time: "));
-  DEBUG_PRINT(getHours());
-  DEBUG_PRINT(F(":"));
-  DEBUG_PRINT(getMinutes());
-  DEBUG_PRINT(F(":"));
-  DEBUG_PRINTLN(getSeconds());
 }
 
 /*

@@ -95,8 +95,8 @@
 //#define LED_DRIVER_LPD8806RGBW
 
 // LED-Layout.
-#define LED_LAYOUT_MOODLIGHT
-//#define LED_LAYOUT_CLT2
+#define LED_LAYOUT_WAAGERECHT
+//#define LED_LAYOUT_SENKRECHT
 
 // IR-Remote.
 #define REMOTE_NO_REMOTE
@@ -119,7 +119,7 @@
 #define LDR_CHECK_RATE 50
 
 // misc.
-#define FIRMWARE_VERSION "qffw_20170202"
+#define FIRMWARE_VERSION "qffw_20170205"
 
 /******************************************************************************
   Debug to serial console.

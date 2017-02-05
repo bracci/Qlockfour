@@ -6,7 +6,7 @@
 #define BOARDS_H
 
 /******************************************************************************
-   Board: NODEMCU
+   Board: NODEMCU/ESP8266
    
    D0  = 16 = BUILTIN_LED
    D1  =  5 = PIN_WIRE_SCL
@@ -15,8 +15,8 @@
    D4  =  2 = IR Sensor
    D5  = 14 = Buzzer
    D6  = 12
-   D7  = 13 = 7 = LED Stripe Clock
-   D8  = 15 = 8 = LED Stripe Data
+   D7  = 13 = LED Stripe Clock
+   D8  = 15 = LED Stripe Data
    D9  =  3
    D10 =  1
    A0  = A0 = LDR
@@ -35,3 +35,4 @@
 #endif
 
 #endif
+

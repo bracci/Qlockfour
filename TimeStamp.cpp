@@ -3,10 +3,9 @@
 */
 
 #include "TimeStamp.h"
-#include "Debug.h"
 
-TimeStamp::TimeStamp(byte minutes, byte hours, byte date, byte dayOfWeek, byte month, byte year) {
-  set(minutes, hours, date, dayOfWeek, month, year);
+TimeStamp::TimeStamp(byte minutes, byte hours, byte date, byte dayOfWeek, byte month, byte year, bool isDST) {
+  set(minutes, hours, date, dayOfWeek, month, year, isDST);
 }
 
 byte TimeStamp::getMinutes() {
@@ -29,20 +28,6 @@ int TimeStamp::getMinutesOf12HoursDay(int minutesDiff) {
 }
 
 unsigned long TimeStamp::getMinutesOfCentury() {
-  /* Funktion gibt NICHT die Minuten des aktuellen Jahrhunderts aus,
-     sondern ermöglicht nur eine eindeutige Zuordnung. Das ist für
-     die DCF-Auswertung nötig.
-     Die Funktion reicht nicht aus, um Zeitvergleiche über eine
-     Tagesgrenze hinaus durchzuführen (außer DCF-Auswertung).
-  */
-  //    return (((( _year * 12 + _month) * 31 + _date) * 24 + _hours) * 60 + _minutes);
-
-  /* Exakte Berechnung der Minuten des aktuellen Jahrhunderts.
-     Diese Funktion braucht mehr Speicher, ist dafür aber auch für
-     Zeitvergleiche über einen Tag hinaus geeignet, z.B. für den Countdown.
-     Alternativ kann auch die obige Funktion für den Countdown verwendet werden,
-     dann muss aber die Prüfung während eines Countdowns entfallen.
-  */
   unsigned long retVal = 0;
   if (_year) retVal += ( (_year + 3) / 4 + _year * 365);
   switch (_month) {
@@ -85,6 +70,10 @@ byte TimeStamp::getYear() {
   return _year;
 }
 
+bool TimeStamp::getisDST() {
+  return _isDST;
+}
+
 void TimeStamp::setMinutes(byte minutes) {
   _minutes = minutes;
 }
@@ -112,7 +101,11 @@ void TimeStamp::setYear(byte year) {
   CheckDateValidity();
 }
 
-void TimeStamp::set(byte minutes, byte hours, byte date, byte dayOfWeek, byte month, byte year) {
+void TimeStamp::setisDST(bool isDST) {
+  _isDST = isDST;
+}
+
+void TimeStamp::set(byte minutes, byte hours, byte date, byte dayOfWeek, byte month, byte year, bool isDST) {
   _minutes = minutes;
   _hours = hours;
   _date = date;
@@ -128,10 +121,11 @@ void TimeStamp::set(TimeStamp* timeStamp) {
   _dayOfWeek = timeStamp->_dayOfWeek;
   _month = timeStamp->_month;
   _year = timeStamp->_year;
+  _isDST = timeStamp->_isDST;
 }
 
 /*
-   Die Minuten erhoehen
+   Minuten erhoehen
 */
 void TimeStamp::incMinutes() {
   _minutes++;
@@ -141,7 +135,7 @@ void TimeStamp::incMinutes() {
 }
 
 /*
-   Die Minuten dekrementieren
+   Minuten dekrementieren
 */
 void TimeStamp::decMinutes() {
   if (_minutes == 0) {
@@ -154,7 +148,7 @@ void TimeStamp::decMinutes() {
 }
 
 /*
-   Die Minuten um 5 Min erhoehen
+   Minuten um 5 Min erhoehen
 */
 void TimeStamp::incFiveMinutes() {
   for (byte i = 0; i < 5; i++) {
@@ -163,7 +157,7 @@ void TimeStamp::incFiveMinutes() {
 }
 
 /*
-   Die Minuten um 5 Min dekrementieren
+   Minuten um 5 Min dekrementieren
 */
 void TimeStamp::decFiveMinutes() {
   for (byte i = 0; i < 5; i++) {
@@ -172,7 +166,7 @@ void TimeStamp::decFiveMinutes() {
 }
 
 /*
-   Die Stunden erhoehen
+   Stunden erhoehen
 */
 void TimeStamp::incHours() {
   _hours++;
@@ -182,7 +176,7 @@ void TimeStamp::incHours() {
 }
 
 /*
-   Die Stunden dekrementieren
+   Stunden dekrementieren
 */
 void TimeStamp::decHours() {
   if (_hours == 0) {
@@ -194,28 +188,28 @@ void TimeStamp::decHours() {
 }
 
 /*
-   Das Jahr erhoehen
+   Jahr erhoehen
 */
 void TimeStamp::incYear(byte addYear) {
   setYear(_year + addYear);
 }
 
 /*
-   Den Monat erhoehen
+   Monat erhoehen
 */
 void TimeStamp::incMonth(byte addMonth) {
   setMonth(_month + addMonth);
 }
 
 /*
-   Das Datum erhoehen
+   Datum erhoehen
 */
 void TimeStamp::incDate(byte addDate) {
   setDate(_date + addDate);
 }
 
 /*
-   Die Zeit als String bekommen
+   Zeit als String bekommen
 */
 char* TimeStamp::asString() {
   _cDateTime[0] = 0;

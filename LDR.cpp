@@ -3,9 +3,9 @@
 */
 
 #include "LDR.h"
-#include "Debug.h"
 
 LDR::LDR(byte pin) {
+  pinMode(PIN_LDR, INPUT);
   _pin = pin;
   _lastValue = 1;
   _outputValue = 0;
