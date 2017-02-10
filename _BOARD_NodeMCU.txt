@@ -9,8 +9,8 @@
 1x 405370 Kohleschicht-Widerstand 10kΩ              0,15 CHF (optional)
 1x 567588 Schraubklemmblock Polzahl 2               0,30 CHF (optional)
 
-1x 171085 IR-Empfaenger TSOP31240                   2,25 CHF
-1x 567615 Schraubklemmblock Polzahl 3               0,45 CHF
+1x 171085 IR-Empfaenger TSOP31240                   2,25 CHF (optional)
+1x 567615 Schraubklemmblock Polzahl 3               0,45 CHF (optional)
 
 1x 567588 Schraubklemmblock Polzahl 2               0,30 CHF *
 

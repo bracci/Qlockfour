@@ -119,7 +119,7 @@
 #define LDR_CHECK_RATE 50
 
 // misc.
-#define FIRMWARE_VERSION "qffw_20170205"
+#define FIRMWARE_VERSION "qffw_20170210"
 
 /******************************************************************************
   Debug to serial console.

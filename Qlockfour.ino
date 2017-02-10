@@ -172,9 +172,12 @@ void setup() {
   ledDriver.clearData();
   ledDriver.setLinesToWrite(10);
   ledDriver.wakeUp();
+  renderer.setAllScreenBuffer(matrix);
+  ledDriver.setBrightness(255);
+  ledDriver.writeScreenBufferToMatrix(matrix, true, color_white);
+  delay(3000);
   ledDriver.setBrightness(settings.getBrightness());
   renderer.clearScreenBuffer(matrix);
-
 }
 
 /******************************************************************************
@@ -402,7 +405,7 @@ void loop() {
             matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[settings.getColor() / 10][i])) << 10;
             matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[settings.getColor() % 10][i])) << 5;
           }
-          DEBUG_PRINT(F("C "));
+          DEBUG_PRINT(F("C"));
           DEBUG_PRINTLN(settings.getColor());
         }
         else {
@@ -419,7 +422,7 @@ void loop() {
         if (settings.getColor() > color_single_max) { // nur anzeigen wenn CC01 oder CC02
           renderer.clearScreenBuffer(matrix);
           renderer.setMenuText("CR", Renderer::TEXT_POS_TOP, matrix);
-          for (byte i = 0; i < 7; i++) {
+          for (byte i = 0; i < 5; i++) {
             matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[settings.getColorChangeRate() / 10][i])) << 10;
             matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[settings.getColorChangeRate() % 10][i])) << 5;
           }
@@ -529,7 +532,7 @@ void loop() {
         if (helperSeconds % 2 == 0) {
           for (byte i = 0; i < 5; i++) matrix[5 + i] = 0;
         } else {
-          for (byte i = 0; i < 7; i++) {
+          for (byte i = 0; i < 5; i++) {
             matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[settings.getJumpToNormalTimeout() / 10][i])) << 10;
             matrix[5 + i] |= pgm_read_byte_near(&(ziffernB[settings.getJumpToNormalTimeout() % 10][i])) << 5;
           }
@@ -1286,13 +1289,13 @@ void updateFromRtc() {
 ******************************************************************************/
 
 void setDisplayToBlank() {
-  mode = STD_MODE_BLANK;
+  setMode(STD_MODE_BLANK);
   ledDriver.shutDown();
   DEBUG_PRINTLN(F("LED-Driver: ShutDown"));
 }
 
 void setDisplayToResume() {
-  mode = lastMode;
+  setMode(lastMode);
   ledDriver.wakeUp();
   DEBUG_PRINTLN(F("LED-Driver: WakeUp"));
 }
@@ -1400,8 +1403,8 @@ void resetSeconds() {
 ******************************************************************************/
 
 void setMode(Mode _mode) {
-  mode = _mode;
   lastMode = mode;
+  mode = _mode;
 }
 
 /******************************************************************************
@@ -1437,12 +1440,12 @@ void initWiFi() {
   WiFi.mode(WIFI_STA);
   WiFi.hostname(HOSTNAME);
   WiFi.begin(ssid, pass);
-  for (byte i=0; ((i<=15) && (WiFi.status() != WL_CONNECTED)); i++) {
+  for (byte i = 0; ((i <= 15) && (WiFi.status() != WL_CONNECTED)); i++) {
     delay(1000);
     DEBUG_PRINT(".");
   }
   DEBUG_PRINTLN("");
-  
+
   if (WiFi.status() != WL_CONNECTED) {
     DEBUG_PRINTLN("Error connecting to WiFi.");
     DEBUG_PRINTLN("");
@@ -1603,6 +1606,7 @@ void handle_TOGGLEBLANK() {
 void handle_BUTTON_TIME() {
   String message = "<!doctype html><html><head><script>window.onload  = function() {window.location.replace('/')};</script></head><body></body></html>";
   server.send(200, "text/html", message);
+  settings.saveToEEPROM();
   setMode(STD_MODE_NORMAL);
 }
 

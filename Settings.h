@@ -45,31 +45,22 @@ class Settings {
     boolean getEsIst();
     void toggleEsIst();
 
+    TimeStamp* getNightModeTime(bool onTime);
+
     void loadFromEEPROM();
     void saveToEEPROM();
-
     void resetToDefault();
-
-    TimeStamp* getNightModeTime(bool onTime);
 
   private:
     byte _language;
-    boolean _renderCornersCw;
     boolean _use_ldr;
     byte _brightness;
-    boolean _enableAlarm;
-    boolean _dcfSignalIsInverted;
-    char _timeShift;
-    eColors _color;
     byte _transitionMode;
-    byte _event;
-    TimeStamp* _nightModeTime[2];
-
+    eColors _color;
+	byte _colorChangeRate;
     byte _jumpToNormalTimeout;
-    byte _colorChangeRate;
-
     byte _esIst;
-    
+    TimeStamp* _nightModeTime[2];
 };
 
 #endif
