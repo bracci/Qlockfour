@@ -58,10 +58,6 @@
   Settings
 ******************************************************************************/
 
-// WLAN settings.
-#define WLAN_SSID "MeineWLANSSID"
-#define WLAN_PASS "HierMeinWLANKennwort"
-
 // Hostname. Only A-Z, a-z, 0-9 and -
 #define HOSTNAME "QLOCKFOUR-NodeMCU"
 
@@ -117,9 +113,6 @@
 #define LDR_MAX_PERCENT 100
 #define LDR_HYSTERESE 50
 #define LDR_CHECK_RATE 50
-
-// misc.
-#define FIRMWARE_VERSION "qffw_20170210"
 
 /******************************************************************************
   Debug to serial console.

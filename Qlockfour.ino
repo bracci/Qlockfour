@@ -17,6 +17,7 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <ArduinoOTA.h>
+#include <WiFiManager.h>
 #include <IRremoteESP8266.h>
 #include "Configuration.h"
 #include "Debug.h"
@@ -41,6 +42,8 @@
 #include "Settings.h"
 #include "Modes.h"
 #include "Alarm.h"
+
+#define FIRMWARE_VERSION "qffw_20170214"
 
 /******************************************************************************
    Init.
@@ -105,8 +108,6 @@ Mode mode = STD_MODE_NORMAL;
 Mode lastMode = mode;
 byte fallBackCounter = 0;
 
-char ssid[] = WLAN_SSID;
-char pass[] = WLAN_PASS;
 IPAddress timeServerIP;
 const char* ntpServerName = NTP_SERVER;
 const int NTP_PACKET_SIZE = 48;
@@ -147,14 +148,8 @@ void setup() {
   helperSeconds = rtc.getSeconds();
   for (byte i = 0; i < 3; i++) {
     rtc.statusLed(true);
-#ifdef USE_STD_MODE_ALARM
-    alarm.buzz(true);
-#endif
     delay(100);
     rtc.statusLed(false);
-#ifdef USE_STD_MODE_ALARM
-    alarm.buzz(false);
-#endif
     delay(100);
   }
 
@@ -162,10 +157,6 @@ void setup() {
   // IR-Empfaenger initialisieren.
   irrecv.enableIRIn();
 #endif
-
-  // WiFi und WebServer initialisieren.
-  initWiFi();
-  setupWebServer();
 
   // LED-Treiber initialisieren und Display einschalten.
   ledDriver.init();
@@ -175,9 +166,42 @@ void setup() {
   renderer.setAllScreenBuffer(matrix);
   ledDriver.setBrightness(255);
   ledDriver.writeScreenBufferToMatrix(matrix, true, color_white);
-  delay(3000);
-  ledDriver.setBrightness(settings.getBrightness());
-  renderer.clearScreenBuffer(matrix);
+  
+  // WiFi und Dienste initialisieren.
+  WiFiManager wifiManager;
+  //wifiManager.resetSettings();
+  wifiManager.setTimeout(30);
+  wifiManager.autoConnect(HOSTNAME);
+
+  if (WiFi.status() != WL_CONNECTED) {
+    DEBUG_PRINTLN("Error connecting to WiFi. Shutting down WiFi.");
+    WiFi.mode(WIFI_OFF);
+#ifdef USE_STD_MODE_ALARM
+    alarm.buzz(true);
+    delay(1500);
+    alarm.buzz(false);
+#endif
+  }
+  else {
+    DEBUG_PRINTLN("WiFi connected.");
+    for (uint8_t i = 0; i < 3; i++) {
+#ifdef USE_STD_MODE_ALARM
+      alarm.buzz(true);
+      delay(100);
+      alarm.buzz(false);
+      delay(100);
+#endif
+    }
+  }
+
+  DEBUG_PRINTLN("Starting UDP on Port 2390.");
+  udp.begin(2390);
+
+  DEBUG_PRINTLN("Starting Arduino-OTA service.");
+  ArduinoOTA.setPassword((const char*)OTA_PASS);
+  ArduinoOTA.begin();
+
+  setupWebServer();
 }
 
 /******************************************************************************
@@ -1434,46 +1458,6 @@ void factoryReset() {
    WiFi, NTP und OTA.
 ******************************************************************************/
 
-void initWiFi() {
-  DEBUG_PRINT("Connecting to ");
-  DEBUG_PRINTLN(ssid);
-  WiFi.mode(WIFI_STA);
-  WiFi.hostname(HOSTNAME);
-  WiFi.begin(ssid, pass);
-  for (byte i = 0; ((i <= 15) && (WiFi.status() != WL_CONNECTED)); i++) {
-    delay(1000);
-    DEBUG_PRINT(".");
-  }
-  DEBUG_PRINTLN("");
-
-  if (WiFi.status() != WL_CONNECTED) {
-    DEBUG_PRINTLN("Error connecting to WiFi.");
-    DEBUG_PRINTLN("");
-    digitalWrite(PIN_BUZZER, HIGH);
-    delay(1500);
-    digitalWrite(PIN_BUZZER, LOW);
-  }
-  else {
-    DEBUG_PRINTLN("WiFi connected.");
-    DEBUG_PRINT("IP address: ");
-    DEBUG_PRINTLN(WiFi.localIP());
-    DEBUG_PRINTLN("");
-    for (byte i = 0; i < 3; i++) {
-      digitalWrite(PIN_BUZZER, HIGH);
-      delay(100);
-      digitalWrite(PIN_BUZZER, LOW);
-      delay(100);
-    }
-
-    DEBUG_PRINTLN("Starting UDP on Port 2390.");
-    udp.begin(2390);
-
-    DEBUG_PRINTLN("Starting Arduino-OTA service.");
-    ArduinoOTA.setPassword((const char*)OTA_PASS);
-    ArduinoOTA.begin();
-  }
-}
-
 boolean setTimeFromNtp(const char* ntpServerName) {
   while (udp.parsePacket() > 0);
   DEBUG_PRINTLN("Transmit NTP Request.");
@@ -1485,13 +1469,11 @@ boolean setTimeFromNtp(const char* ntpServerName) {
     if (size >= NTP_PACKET_SIZE) {
       DEBUG_PRINTLN("Received NTP Response.");
       udp.read(packetBuffer, NTP_PACKET_SIZE);
-
       unsigned long secsSince1900;
       secsSince1900 =  (unsigned long)packetBuffer[40] << 24;
       secsSince1900 |= (unsigned long)packetBuffer[41] << 16;
       secsSince1900 |= (unsigned long)packetBuffer[42] << 8;
       secsSince1900 |= (unsigned long)packetBuffer[43];
-
       time_t ntpTime = secsSince1900 - 2208988800UL + UTC_OFFSET * 3600;
       struct tm *now = localtime(&ntpTime);
       if (now->tm_isdst) {
@@ -1507,7 +1489,6 @@ boolean setTimeFromNtp(const char* ntpServerName) {
       rtc.setDayOfWeek(now->tm_wday);
       rtc.setisDST    (now->tm_isdst);
       rtc.writeTime();
-
       DEBUG_PRINT("Local time from NTP is ");
       DEBUG_PRINT(now->tm_hour);
       DEBUG_PRINT(':');
@@ -1525,7 +1506,6 @@ boolean setTimeFromNtp(const char* ntpServerName) {
       DEBUG_PRINT(' ');
       DEBUG_PRINTLN(now->tm_isdst);
       DEBUG_PRINTLN("Time written to RTC.");
-
       return true;
     }
   }
@@ -1556,6 +1536,7 @@ unsigned long sendNTPpacket(IPAddress &address) {
 // Setup des Web-Servers.
 void setupWebServer() {
   if (MDNS.begin(HOSTNAME)) DEBUG_PRINTLN("MDNS responder started.");
+  DEBUG_PRINTLN("Starting Webserver on Port 80.");
   server.onNotFound(handleNotFound);
   server.on("/", handleRoot);
   server.on("/handle_TOGGLEBLANK", handle_TOGGLEBLANK);
@@ -1574,13 +1555,22 @@ void handleNotFound() {
 }
 
 void handleRoot() {
-  String message = "<!doctype html><html><head>";
-  message += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">";
-  message += "<meta http-equiv=\"refresh\" content=\"60; URL=/\" />";
-  message += "</head><body><font face=\"Arial\"><center>";
-  message += "<h2>";
+  String message = "<!doctype html>";
+  message += "<html>";
+  message += "<head>";
+  message += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
+  message += "<title>";
   message += HOSTNAME;
-  message += "</h2>";
+  message += "</title>";
+  message += "<style>";
+  message += "body {background-color:#FFFFFF; text-align:center; font-family:verdana; color:#333333;}";
+  message += "button {background-color:#1FA3EC; border: 5px solid #FFFFFF; color:#FFFFFF; width: 200px; padding:15px 32px; text-align:center; display:inline-block; font-size:16px;}";
+  message += "</style>";
+  message += "</head>";
+  message += "<body>";
+  message += "<h1>";
+  message += HOSTNAME;
+  message += "</h1>";
   message += "<button onclick=\"window.location.href='/handle_TOGGLEBLANK'\">Clock on/off</button>&nbsp;";
   message += "<button onclick=\"window.location.href='/handle_BUTTON_TIME'\">Time</button><br><br>";
   message += "<button onclick=\"window.location.href='/handle_BUTTON_MODE'\">Mode</button>&nbsp;";
@@ -1593,7 +1583,9 @@ void handleRoot() {
   message += " Minutes.<br>";
   message += "Firmware: ";
   message += FIRMWARE_VERSION;
-  message += "</center></font></font></body></html>";
+  message += "</font>";
+  message += "</body>";
+  message += "</html>";
   server.send(200, "text/html", message);
 }
 

@@ -1705,7 +1705,6 @@ void Renderer::unsetPixelInScreenBuffer(byte x, byte y, word matrix[16]) {
   matrix[y] = ~matrix[y];
   matrix[y] |= 0b1000000000000000 >> x;
   matrix[y] = ~matrix[y];
-
 }
 
 boolean Renderer::getPixelFromScreenBuffer(byte x, byte y, word matrix[16]) {

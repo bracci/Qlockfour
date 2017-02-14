@@ -3,6 +3,8 @@
 
 Sie gleicht die Zeit einmal am Tag per NTP mit einem Zeitserver im Internet ab. Auf der Web-Seite kann man die Uhr steuern, konfigurieren und Infos abrufen. Updates sind OTA moeglich. Dazu im Arduino IDE den ESP als Port auswaehlen.
 
+WiFi Manager: Wenn die Uhr sich beim Start mit keinem WLAN verbinden kann, schaltet sie einen AccessPoint ein. Dann ein Handy oder Tablet mit diesem verbinden und die WLAN Daten eingeben.
+
 Einher geht die Firmware mit dem BOARD_NODEMCU bestehend aus NodeMCU/ESP8266 und einem DS3231-RTC-Modul. Informationen zum schnellen Aufbau liegen im Verzeichnis. Siehe _BOARD_NodeMCU.
 
 Ein Video gibt es hier: https://www.youtube.com/watch?v=X_I5B-dErzE
@@ -179,9 +181,12 @@ DEBUG_SET_DEFAULTS:  Schreibt die Default-Werte bei jedem Start in den EEPROM.
 ### Important Info
 ```
 In order to get the firmware to compile, you have to install the following libraries:
-https://github.com/adafruit/Adafruit_NeoPixel
+via Web:
 https://github.com/ch570512/LPD8806
 https://github.com/ch570512/LPD8806RGBW
-https://github.com/markszabo/IRremoteESP8266
+via Arduino:
+Adafruit NeoPixel by Adafruit
+IRremoteESP8266 by Sebastien Warin
+WiFiManager by tzapu
 ```
 #### Vielen Dank an alle, insbesondere an Christian, Manuel und Andreas, auf deren Arbeit, Zeit und Einfallsreichtum diese Version der Firmware aufbaut.
