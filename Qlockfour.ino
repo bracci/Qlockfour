@@ -43,7 +43,7 @@
 #include "Modes.h"
 #include "Alarm.h"
 
-#define FIRMWARE_VERSION "qffw_20170214"
+#define FIRMWARE_VERSION "qffw_20170218"
 
 /******************************************************************************
    Init.
@@ -170,7 +170,7 @@ void setup() {
   // WiFi und Dienste initialisieren.
   WiFiManager wifiManager;
   //wifiManager.resetSettings();
-  wifiManager.setTimeout(30);
+  wifiManager.setTimeout(60);
   wifiManager.autoConnect(HOSTNAME);
 
   if (WiFi.status() != WL_CONNECTED) {
@@ -795,11 +795,13 @@ void loop() {
 #endif
 
 #ifdef USE_EXT_MODE_NIGHT_OFF
-  // Display zeitgesteuert abschalten.
+  // Display zeitgesteuert abschalten
   if ((mode < EXT_MODE_START) && (mode != STD_MODE_NIGHT) && (settings.getNightModeTime(false)->getMinutesOfDay(0) == rtc.getMinutesOfDay(0)) && (helperSeconds == 0)) {
-    mode = STD_MODE_NIGHT; // hier nicht setMode() verwenden
+    setMode(STD_MODE_NIGHT);
     ledDriver.shutDown();
   }
+
+  // Display zeitgesteuert einschalten
   if ((mode == STD_MODE_NIGHT) && (settings.getNightModeTime(true)->getMinutesOfDay(0) == rtc.getMinutesOfDay(0)) && (helperSeconds == 0)) {
     mode = lastMode;
     ledDriver.wakeUp();
