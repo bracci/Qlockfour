@@ -80,7 +80,8 @@
 #define MAX_BUZZ_TIME 5
 
 // Board.
-#define BOARD_NODEMCU
+//#define BOARD_NODEMCU
+#define BOARD_WEMOS
 
 // LED on board.
 #define ENABLE_SQW_LED
@@ -91,15 +92,15 @@
 //#define LED_DRIVER_LPD8806RGBW
 
 // LED-Layout.
-#define LED_LAYOUT_WAAGERECHT
-//#define LED_LAYOUT_SENKRECHT
+//#define LED_LAYOUT_WAAGERECHT
+#define LED_LAYOUT_SENKRECHT
 
 // IR-Remote.
-#define REMOTE_NO_REMOTE
+//#define REMOTE_NO_REMOTE
 //#define REMOTE_SPARKFUN
 //#define REMOTE_MOONCANDLES
 //#define REMOTE_LUNARTEC
-//#define REMOTE_CLT2
+#define REMOTE_CLT2
 //#define REMOTE_APPLE
 //#define REMOTE_PHILIPS
 //#define REMOTE_HX1838
@@ -109,10 +110,16 @@
 //#define IR_LETTER_OFF_Y 10
 
 // LDR.
-#define LDR_MIN_PERCENT 5
+#define LDR_MIN_PERCENT 2
 #define LDR_MAX_PERCENT 100
 #define LDR_HYSTERESE 50
 #define LDR_CHECK_RATE 50
+
+/*
+ * Welche Uhr soll benutzt werden?
+ */
+//#define DS1307
+ #define DS3231
 
 /******************************************************************************
   Debug to serial console.
