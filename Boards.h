@@ -34,5 +34,32 @@
 
 #endif
 
+/******************************************************************************
+   Board: WEMOS/ESP8266
+   
+   D0  = 16
+   D1  =  5 = PIN_WIRE_SCL
+   D2  =  4 = PIN_WIRE_SDA
+   D3  =  0 = SQW Interrupt
+   D4  =  2 = IR Sensor
+   D5  = 14 = LED Stripe Clock
+   D6  = 12
+   D7  = 13 = LED Stripe Data
+   D8  = 15 = Buzzer
+   A0  = A0 = LDR
+******************************************************************************/
+
+#ifdef BOARD_WEMOS
+
+#define PIN_SQW_LED      12
+#define PIN_SQW_SIGNAL    0
+#define PIN_IR_RECEIVER   2
+#define PIN_BUZZER       15
+#define PIN_LEDS_CLOCK   14
+#define PIN_LEDS_DATA    13
+#define PIN_LDR          A0
+
+#endif
+
 #endif
 
