@@ -346,38 +346,25 @@ void LedDriverNeoPixel::_setPixel(byte num, uint32_t c) {
   }
 #endif
 #ifdef LED_LAYOUT_SENKRECHT
-  byte ledNum;
-  if (num < 110) {
+if (num < 110) {
     if ((num / 10) % 2 == 0) {
-      ledNum = num;
+      _strip->setPixelColor(num, c);
     } else {
-      ledNum = ((num / 10) * 10) + 9 - (num % 10);
-    }
-    if (ledNum < 10)
-    {
-      _strip->setPixelColor(ledNum + 1, c);
-    }
-    else if (ledNum < 100)
-    {
-      _strip->setPixelColor(ledNum + 2, c);
-    }
-    else
-    {
-      _strip->setPixelColor(ledNum + 3, c);
+      _strip->setPixelColor(((num / 10) * 10) + 9 - (num % 10), c);
     }
   } else {
     switch (num) {
       case 110:
-        _strip->setPixelColor(0, c);
+        _strip->setPixelColor(112, c);
         break;
       case 111:
-        _strip->setPixelColor(102, c);
+        _strip->setPixelColor(111, c);
         break;
       case 112:
-        _strip->setPixelColor(113, c);
+        _strip->setPixelColor(110, c);
         break;
       case 113:
-        _strip->setPixelColor(11, c);
+        _strip->setPixelColor(113, c);
         break;
       case 114:
         _strip->setPixelColor(114, c);
@@ -386,6 +373,46 @@ void LedDriverNeoPixel::_setPixel(byte num, uint32_t c) {
         ;
     }
   }
+//  byte ledNum;
+//  if (num < 110) {
+//    if ((num / 10) % 2 == 0) {
+//      ledNum = num;
+//    } else {
+//      ledNum = ((num / 10) * 10) + 9 - (num % 10);
+//    }
+//    if (ledNum < 10)
+//    {
+//      _strip->setPixelColor(ledNum + 1, c);
+//    }
+//    else if (ledNum < 100)
+//    {
+//      _strip->setPixelColor(ledNum + 2, c);
+//    }
+//    else
+//    {
+//      _strip->setPixelColor(ledNum + 3, c);
+//    }
+//  } else {
+//    switch (num) {
+//      case 110:
+//        _strip->setPixelColor(0, c);
+//        break;
+//      case 111:
+//        _strip->setPixelColor(102, c);
+//        break;
+//      case 112:
+//        _strip->setPixelColor(113, c);
+//        break;
+//      case 113:
+//        _strip->setPixelColor(11, c);
+//        break;
+//      case 114:
+//        _strip->setPixelColor(114, c);
+//        break;
+//      default:
+//        ;
+//    }
+//  }
 #endif
 }
 
