@@ -137,7 +137,11 @@ void setup() {
 	Wire.begin();
 	pinMode(PIN_SQW_SIGNAL, INPUT);
 	digitalWrite(PIN_SQW_SIGNAL, HIGH);
-	rtc.enableSQWOnDS3231();
+#ifdef DS1307
+	rtc.enableSQWOnDS1307();
+#else
+  rtc.enableSQWOnDS3231();
+#endif
 	attachInterrupt(digitalPinToInterrupt(PIN_SQW_SIGNAL), updateFromRtc, FALLING);
 	rtc.readTime();
 	if ((rtc.getSeconds() >= 60) || (rtc.getMinutes() >= 60) || (rtc.getHours() >= 24) || (rtc.getYear() < 17)) {

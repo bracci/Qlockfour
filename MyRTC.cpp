@@ -86,6 +86,16 @@ void MyRTC::writeTime() {
   Wire.endTransmission();
 }
 
+/**
+ * SQW fuer DS1307.
+ */
+void MyRTC::enableSQWOnDS1307() {
+    Wire.beginTransmission(_address);
+    Wire.write(0x07); // Datenregister
+    Wire.write(0b00010000); // enable 1HZ square wave output
+    Wire.endTransmission();
+}
+
 /*
    SQW mit 1Hz einschalten
 */
