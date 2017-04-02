@@ -59,7 +59,7 @@
 ******************************************************************************/
 
 // Hostname. Only A-Z, a-z, 0-9 and -
-#define HOSTNAME "QLOCKFOUR-NodeMCU"
+#define HOSTNAME "QlockWiFive"
 
 // OTA password.
 #define OTA_PASS "1234"
