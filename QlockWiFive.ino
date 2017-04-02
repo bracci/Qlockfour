@@ -9,7 +9,6 @@
 ******************************************************************************/
 
 #include <Wire.h>
-#include <Adafruit_NeoPixel.h>
 #include <ctime>
 #include <WiFiUdp.h>
 #include <WiFiClient.h>
@@ -20,6 +19,11 @@
 #include <WiFiManager.h>
 #include <IRremoteESP8266.h>
 #include "Configuration.h"
+#ifdef LED_DRIVER_NEOPIXELRGBW
+  #include <Adafruit_NeoPixel_RGBW.h>
+#else
+  #include <Adafruit_NeoPixel.h>
+#endif
 #include "Debug.h"
 #include "Boards.h"
 #include "MyRTC.h"
@@ -49,7 +53,7 @@
    Init.
 ******************************************************************************/
 
-#ifdef LED_DRIVER_NEOPIXEL
+#if defined(LED_DRIVER_NEOPIXEL) || defined(LED_DRIVER_NEOPIXELRGBW)
 LedDriverNeoPixel ledDriver(PIN_LEDS_DATA);
 #endif
 #ifdef LED_DRIVER_LPD8806

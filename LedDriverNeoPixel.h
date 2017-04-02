@@ -7,7 +7,12 @@
 
 #include "Arduino.h"
 #include "LedDriver.h"
-#include <Adafruit_NeoPixel.h>
+#ifdef LED_DRIVER_NEOPIXELRGBW
+  #include <Adafruit_NeoPixel_RGBW.h>
+#else
+  #include <Adafruit_NeoPixel.h>
+#endif
+
 
 class LedDriverNeoPixel : public LedDriver {
   public:
@@ -40,8 +45,13 @@ class LedDriverNeoPixel : public LedDriver {
     uint32_t _wheel(byte brightness, byte wheelPos);
 
     byte _brightnessScaleColor(byte brightness, byte colorPart);
-
-    Adafruit_NeoPixel *_strip;
+    
+#ifdef LED_DRIVER_NEOPIXELRGBW
+  Adafruit_NeoPixel_RGBW *_strip;
+#else
+  Adafruit_NeoPixel *_strip;
+#endif
+    
 };
 
 #endif

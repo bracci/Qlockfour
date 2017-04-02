@@ -5,7 +5,11 @@
 #include "LedDriverNeoPixel.h"
 #include "Debug.h"
 
+#ifdef LED_DRIVER_NEOPIXELRGBW
+#define NUM_PIXEL 225
+#else
 #define NUM_PIXEL 115
+#endif
 
 #define FADINGCOUNTERLOAD 100
 #define SLIDINGCOUNTERLOAD 5000
@@ -17,7 +21,12 @@
    Konstruktor.
 */
 LedDriverNeoPixel::LedDriverNeoPixel(byte dataPin) {
+#ifdef LED_DRIVER_NEOPIXELRGBW
+  _strip = new Adafruit_NeoPixel_RGBW(NUM_PIXEL, dataPin, NEO_GRBW + NEO_KHZ800);
+#else
   _strip = new Adafruit_NeoPixel(NUM_PIXEL, dataPin, NEO_GRB + NEO_KHZ800);
+#endif
+  
   _strip->begin();
   _wheelPos = 0;
   _transitionCounter = 0;
@@ -346,7 +355,38 @@ void LedDriverNeoPixel::_setPixel(byte num, uint32_t c) {
   }
 #endif
 #ifdef LED_LAYOUT_SENKRECHT
-if (num < 110) {
+#ifdef LED_DRIVER_NEOPIXELRGBW
+  if (num < 110) {
+    if ((num / 10) % 2 == 0) {
+      _strip->setPixelColor(num * 2, c);
+      _strip->setPixelColor(num * 2 + 1, c);
+    } else {
+      _strip->setPixelColor((((num / 10) * 10) + 9 - (num % 10))*2, c);
+      _strip->setPixelColor((((num / 10) * 10) + 9 - (num % 10))*2+1, c);
+    }
+  } else {
+    switch (num) {
+      case 110:
+        _strip->setPixelColor(222, c);
+        break;
+      case 111:
+        _strip->setPixelColor(221, c);
+        break;
+      case 112:
+        _strip->setPixelColor(220, c);
+        break;
+      case 113:
+        _strip->setPixelColor(223, c);
+        break;
+      case 114:
+        _strip->setPixelColor(224, c);
+        break;
+      default:
+        ;
+    }
+  }
+  #else
+  if (num < 110) {
     if ((num / 10) % 2 == 0) {
       _strip->setPixelColor(num, c);
     } else {
@@ -373,6 +413,7 @@ if (num < 110) {
         ;
     }
   }
+  #endif
 //  byte ledNum;
 //  if (num < 110) {
 //    if ((num / 10) % 2 == 0) {
@@ -436,6 +477,6 @@ uint32_t LedDriverNeoPixel::_wheel(byte brightness, byte wheelPos) {
    Hilfsfunktion fuer das Skalieren der Farben.
 */
 byte LedDriverNeoPixel::_brightnessScaleColor(byte brightness, byte colorPart) {
-  return map(brightness, 0, 100, 0, colorPart);
+  return map(brightness, 0, 100, 0, colorPart/4);
 }
 
