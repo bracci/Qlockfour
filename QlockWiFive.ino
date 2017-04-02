@@ -171,6 +171,7 @@ void setup() {
 	ledDriver.setBrightness(255);
 	ledDriver.writeScreenBufferToMatrix(matrix, true, color_white);
 
+  WiFi.hostname(HOSTNAME);
 	// WiFi und Dienste initialisieren.
 	WiFiManager wifiManager;
 	//wifiManager.resetSettings();
