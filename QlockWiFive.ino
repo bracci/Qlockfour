@@ -960,22 +960,18 @@ void remoteAction(unsigned int irCode, IRTranslator * irTranslatorGeneric) {
 			if (mode == EXT_MODE_TIMESET) {
 				incDecHours(false);
 			}
-			else
-				minutePlusPressed();
 			break;
 		case REMOTE_BUTTON_TIME_M_PLUS:
 			if (mode == EXT_MODE_TIMESET) {
 				incDecMinutes(true);
 			}
 			else
-				hourPlusPressed();
+				minutePlusPressed();
 			break;
 		case REMOTE_BUTTON_TIME_M_MINUS:
 			if (mode == EXT_MODE_TIMESET) {
 				incDecMinutes(false);
 			}
-			else
-				minutePlusPressed();
 			break;
 		case REMOTE_BUTTON_TRANSITION:
 			settings.setTransitionMode(irTranslatorGeneric->getTransition());
